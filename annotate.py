@@ -20,7 +20,7 @@ def run_make_test_annotation(split):
 
         # show and save into image folder
         cv2.imwrite(os.path.join(data_dir, 'images/%s.png' % name), image)
-        print('write %s'%name[:4])
+        print('dump: ', i)
 
     print('run_make_test_annotation success!')
 
@@ -44,7 +44,6 @@ def run_make_train_annotation(split):
         image_files = glob.glob(os.path.join(DOWNLOAD_DIR, '%s/%s/images/*.png' % (folder, name)))
         assert(len(image_files) == 1)
         image_file = image_files[0]
-        print(id)
 
         #image
         image = cv2.imread(image_file, cv2.IMREAD_COLOR)
@@ -65,11 +64,11 @@ def run_make_train_annotation(split):
         all = np.hstack((image, contour_overlay,color1_overlay,)).astype(np.uint8)
 
         # dump images and multi-masks
-        cv2.imwrite(data_dir + '/images/%s.png' % name, image)
-        cv2.imwrite(data_dir + '/multi_masks/%s.png' % name, color_overlay)
-        np.save(    data_dir + '/multi_masks/%s.npy' % name, multi_mask)
-        cv2.imwrite(data_dir + '/overlays/%s.png' % name, all)
-        print('write %s'%name[:4])
+        cv2.imwrite(os.path.join(data_dir, 'images', '%s.png' % name), image)
+        cv2.imwrite(os.path.join(data_dir, 'multi_masks', '%s.png' % name), color_overlay)
+        np.save(    os.path.join(data_dir, 'multi_masks', '%s.npy' % name), multi_mask)
+        cv2.imwrite(os.path.join(data_dir, 'overlays', '%s.png' % name), all)
+        print('dump: ', i)
 
     print('run_make_train_annotation success!')
 
@@ -77,7 +76,7 @@ def run_make_train_annotation(split):
 if __name__ == '__main__':
     print('%s: calling main function ... ' % os.path.basename(__file__))
 
-    run_make_train_annotation('test1_ids_all_65')
-    run_make_test_annotation('train1_ids_all_670')
+    run_make_train_annotation('train1_ids_all_670')
+    run_make_test_annotation('test1_ids_all_65')
 
     print('Done')

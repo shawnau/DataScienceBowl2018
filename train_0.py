@@ -510,7 +510,7 @@ if __name__ == '__main__':
     run_train(model_name='mask-rcnn-50-gray500-02',
               train_split='train1_ids_gray2_500',
               valid_split='valid1_ids_gray2_43',
-              pretrain_file='00016500_model.pth',
+              pretrain_file=None,
               checkpoint=None
               )
 
