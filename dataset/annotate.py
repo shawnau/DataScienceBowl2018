@@ -19,9 +19,8 @@ def run_make_test_annotation(split):
         image = cv2.imread(image_path, cv2.IMREAD_COLOR)
 
         # show and save into image folder
-        image_show('image', image)
         cv2.imwrite(os.path.join(data_dir, 'images/%s.png' % name), image)
-        cv2.waitKey(1)
+        print('write %s'%name[:4])
 
     print('run_make_test_annotation success!')
 
@@ -70,9 +69,7 @@ def run_make_train_annotation(split):
         cv2.imwrite(data_dir + '/multi_masks/%s.png' % name, color_overlay)
         np.save(    data_dir + '/multi_masks/%s.npy' % name, multi_mask)
         cv2.imwrite(data_dir + '/overlays/%s.png' % name, all)
-
-        image_show('all', all)
-        cv2.waitKey(1)
+        print('write %s'%name[:4])
 
     print('run_make_train_annotation success!')
 

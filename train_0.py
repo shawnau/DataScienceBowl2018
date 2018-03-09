@@ -457,9 +457,9 @@ def run_train(model_name, train_split, valid_split, checkpoint=None, pretrain_fi
                     # image_show('rpn_proposal',all3,1)
                     # image_show('truth_box',all4,1)
                     # image_show('rpn_precision',all5,1)
-                    image_show('rpn_precision',  all5, 1)
-                    image_show('rcnn_precision', all6, 1)
-                    image_show('mask_precision', all7, 1)
+                    # image_show('rpn_precision',  all5, 1)
+                    # image_show('rcnn_precision', all6, 1)
+                    # image_show('mask_precision', all7, 1)
 
 
                     # summary = np.vstack([
@@ -472,9 +472,9 @@ def run_train(model_name, train_split, valid_split, checkpoint=None, pretrain_fi
                     # draw_shadow_text(summary, 'iter=%08d'%i,  (5,3*HEIGHT-15),0.5, (255,255,255), 1)
                     # image_show('summary',summary,1)
 
-                    name = train_dataset.ids[indices[b]].split('/')[-1]
-                    #cv2.imwrite(out_dir +'/train/%s.png'%name,summary)
-                    #cv2.imwrite(out_dir +'/train/%05d.png'%b,summary)
+                    # name = train_dataset.ids[indices[b]].split('/')[-1]
+                    # cv2.imwrite(out_dir +'/train/%s.png'%name,summary)
+                    # cv2.imwrite(out_dir +'/train/%05d.png'%b,summary)
 
                     cv2.imwrite(os.path.join(f.train_result, '%05d.rpn_precision.png'%b),  all5)
                     cv2.imwrite(os.path.join(f.train_result, '%05d.rcnn_precision.png'%b), all6)

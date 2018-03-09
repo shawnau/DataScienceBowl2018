@@ -245,9 +245,9 @@ def run_submit(model_name, checkpoint, eval_split):
             cv2.imwrite(os.path.join(sub_dir, '%s.png'%name), image)
             cv2.imwrite(os.path.join(sub_dir, '%s.mask.png'%name), color_overlay)
             cv2.imwrite(os.path.join(sub_dir, '%s.contour.png'%name), contour_overlay)
-
-            image_show('all',all)
-            cv2.waitKey(1)
+            print('save %s'%name[:4])
+            # image_show('all',all)
+            # cv2.waitKey(1)
 
     assert(test_num == len(test_loader.sampler))
 
@@ -320,14 +320,14 @@ def run_npy_to_sumbit_csv(model_name, submission_name):
 
         # debug ------------------------------------
         print(all_num, num_masks)  # GT is 4152?
-        image_file = os.path.join(image_dir, '%s.png'%name)
-        image = cv2.imread(image_file)
-        color_overlay   = multi_mask_to_color_overlay(multi_mask)
-        color1_overlay  = multi_mask_to_contour_overlay(multi_mask, color_overlay)
-        contour_overlay = multi_mask_to_contour_overlay(multi_mask, image, [0,255,0])
-        all = np.hstack((image, contour_overlay, color1_overlay)).astype(np.uint8)
-        image_show('all',all)
-        cv2.waitKey(1)
+        # image_file = os.path.join(image_dir, '%s.png'%name)
+        # image = cv2.imread(image_file)
+        # color_overlay   = multi_mask_to_color_overlay(multi_mask)
+        # color1_overlay  = multi_mask_to_contour_overlay(multi_mask, color_overlay)
+        # contour_overlay = multi_mask_to_contour_overlay(multi_mask, image, [0,255,0])
+        # all = np.hstack((image, contour_overlay, color1_overlay)).astype(np.uint8)
+        # image_show('all',all)
+        # cv2.waitKey(1)
     # submission csv  ----------------------------
 
     # kaggle submission requires all test image to be listed!
