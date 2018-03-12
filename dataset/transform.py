@@ -1,23 +1,33 @@
 from common import *
 
 
-## for debug
+# for debug
 def dummy_transform(image):
-    print ('\tdummy_transform')
+    print('\tdummy_transform')
     return image
 
-# kaggle science bowl-2 : ################################################################
 
-def resize_to_factor2(image, mask, factor=16):
+# kaggle science bowl-2
+# geometric ---
+def pad_to_factor(image, factor=16):
+    height,width = image.shape[:2]
+    h = math.ceil(height/factor)*factor
+    w = math.ceil(width/factor)*factor
 
+    image = cv2.copyMakeBorder(image, top=0, bottom=h-height, left=0, right=w-width,
+                               borderType= cv2.BORDER_REFLECT101, value=[0,0,0] )
+
+    return image
+
+
+def resize_to_factor(image, mask, factor=16):
     H,W = image.shape[:2]
     h = (H//factor)*factor
     w = (W //factor)*factor
-    return fix_resize_transform2(image, mask, w, h)
+    return fix_resize_transform(image, mask, w, h)
 
 
-
-def fix_resize_transform2(image, mask, w, h):
+def fix_resize_transform(image, mask, w, h):
     H,W = image.shape[:2]
     if (H,W) != (h,w):
         image = cv2.resize(image,(w,h))
@@ -28,9 +38,7 @@ def fix_resize_transform2(image, mask, w, h):
     return image, mask
 
 
-
-
-def fix_crop_transform2(image, mask, x,y,w,h):
+def fix_crop_transform(image, mask, x, y, w, h):
 
     H,W = image.shape[:2]
     assert(H>=h)
@@ -47,7 +55,7 @@ def fix_crop_transform2(image, mask, x,y,w,h):
     return image, mask
 
 
-def random_crop_transform2(image, mask, w,h, u=0.5):
+def random_crop_transform(image, mask, w, h, u=0.5):
     x,y = -1,-1
     if random.random() < u:
 
@@ -62,23 +70,24 @@ def random_crop_transform2(image, mask, w,h, u=0.5):
         else:
             x=0
 
-    return fix_crop_transform2(image, mask, x,y,w,h)
+    return fix_crop_transform(image, mask, x, y, w, h)
 
 
-
-def random_horizontal_flip_transform2(image, mask, u=0.5):
+def random_horizontal_flip_transform(image, mask, u=0.5):
     if random.random() < u:
         image = cv2.flip(image,1)  #np.fliplr(img) ##left-right
         mask  = cv2.flip(mask,1)
     return image, mask
 
-def random_vertical_flip_transform2(image, mask, u=0.5):
+
+def random_vertical_flip_transform(image, mask, u=0.5):
     if random.random() < u:
         image = cv2.flip(image,0)
         mask  = cv2.flip(mask,0)
     return image, mask
 
-def random_rotate90_transform2(image, mask, u=0.5):
+
+def random_rotate90_transform(image, mask, u=0.5):
     if random.random() < u:
 
         angle=random.randint(1,3)*90
@@ -106,15 +115,14 @@ def relabel_multi_mask(multi_mask):
     unique_color = set( tuple(v) for m in data for v in m )
     #print(len(unique_color))
 
-
-    H,W  = data.shape[:2]
+    H,W = data.shape[:2]
     multi_mask = np.zeros((H,W),np.int32)
     for color in unique_color:
         #print(color)
         if color == (0,): continue
 
         mask = (data==color).all(axis=2)
-        label  = skimage.morphology.label(mask)
+        label = skimage.morphology.label(mask)
 
         index = [label!=0]
         multi_mask[index] = label[index]+multi_mask.max()
@@ -122,12 +130,14 @@ def relabel_multi_mask(multi_mask):
     return multi_mask
 
 
-def random_shift_scale_rotate_transform2( image, mask,
-                        shift_limit=[-0.0625,0.0625], scale_limit=[1/1.2,1.2],
-                        rotate_limit=[-15,15], borderMode=cv2.BORDER_REFLECT_101 , u=0.5):
+def random_shift_scale_rotate_transform(image, mask,
+                                        shift_limit=[-0.0625,0.0625],
+                                        scale_limit=[1/1.2,1.2],
+                                        rotate_limit=[-15,15],
+                                        borderMode=cv2.BORDER_REFLECT_101,
+                                        u=0.5):
 
-    #cv2.BORDER_REFLECT_101  cv2.BORDER_CONSTANT
-
+    # cv2.BORDER_REFLECT_101  cv2.BORDER_CONSTANT
     if random.random() < u:
         height, width, channel = image.shape
 
@@ -162,11 +172,9 @@ def random_shift_scale_rotate_transform2( image, mask,
     return image, mask
 
 
+# single image
 
-
-# single image ########################################################
-
-#agumentation (photometric) ----------------------
+# agumentation (photometric) ----------------------
 def random_brightness_shift_transform(image, limit=[16,64], u=0.5):
     if np.random.random() < u:
         alpha = np.random.uniform(limit[0], limit[1])
@@ -204,6 +212,7 @@ def random_saturation_transform(image, limit=[0.5,1.5], u=0.5):
         image = np.clip(image, 0, 255).astype(np.uint8)
     return image
 
+
 # https://github.com/chainer/chainercv/blob/master/chainercv/links/model/ssd/transforms.py
 # https://github.com/fchollet/keras/pull/4806/files
 # https://zhuanlan.zhihu.com/p/24425116
@@ -230,34 +239,6 @@ def random_noise_transform(image, limit=[0, 0.5], u=0.5):
     return image
 
 
-# geometric ---
-def resize_to_factor(image, factor=16):
-    height,width = image.shape[:2]
-    h = (height//factor)*factor
-    w = (width //factor)*factor
-    return fix_resize_transform(image, w, h)
-
-
-def fix_resize_transform(image, w, h):
-    height,width = image.shape[:2]
-    if (height,width) != (h,w):
-        image = cv2.resize(image,(w,h))
-    return image
-
-
-
-def pad_to_factor(image, factor=16):
-    height,width = image.shape[:2]
-    h = math.ceil(height/factor)*factor
-    w = math.ceil(width/factor)*factor
-
-    image = cv2.copyMakeBorder(image, top=0, bottom=h-height, left=0, right=w-width,
-                               borderType= cv2.BORDER_REFLECT101, value=[0,0,0] )
-
-    return image
-
-
-# main #################################################################
 if __name__ == '__main__':
     print( '%s: calling main function ... ' % os.path.basename(__file__))
 

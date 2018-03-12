@@ -30,6 +30,7 @@ def add_truth_box_to_proposal(cfg, proposal, b, truth_box, truth_label, score=-1
 # gpu version
 ## see https://github.com/ruotianluo/pytorch-faster-rcnn
 def make_one_rcnn_target(cfg, input, proposal, truth_box, truth_label):
+
     sampled_proposal = Variable(torch.FloatTensor((0,7))).cuda()
     sampled_label    = Variable(torch.LongTensor ((0,1))).cuda()
     sampled_assign   = np.array((0,1),np.int32)
@@ -38,8 +39,7 @@ def make_one_rcnn_target(cfg, input, proposal, truth_box, truth_label):
     if len(truth_box)==0 or len(proposal)==0:
         return sampled_proposal, sampled_label, sampled_assign, sampled_target
 
-
-    #filter invalid proposal ---------------
+    # filter invalid proposal ---------------
     _,height,width = input.size()
     num_proposal = len(proposal)
 
@@ -53,9 +53,8 @@ def make_one_rcnn_target(cfg, input, proposal, truth_box, truth_label):
         return sampled_proposal, sampled_label, sampled_assign, sampled_target
 
     proposal = proposal[valid]
-    #----------------------------------------
 
-
+    # ----------------------------------------
     num_proposal = len(proposal)
     box = proposal[:,1:5]
 
@@ -128,7 +127,6 @@ def make_one_rcnn_target(cfg, input, proposal, truth_box, truth_label):
         target_box       = sampled_proposal[:num_fg][:,1:5]
         sampled_target   = rcnn_encode(target_box, target_truth_box)
 
-
     sampled_target   = Variable(torch.from_numpy(sampled_target)).cuda()
     sampled_label    = Variable(torch.from_numpy(sampled_label)).long().cuda()
     sampled_proposal = Variable(torch.from_numpy(sampled_proposal)).cuda()
@@ -136,11 +134,10 @@ def make_one_rcnn_target(cfg, input, proposal, truth_box, truth_label):
     return sampled_proposal, sampled_label, sampled_assign, sampled_target
 
 
-
-
-
 def make_rcnn_target(cfg, mode, inputs, proposals, truth_boxes, truth_labels):
-
+    """
+    a sampled subset of proposals, with it's corresponding truth label and offsets
+    """
     #<todo> take care of don't care ground truth. Here, we only ignore them  ----
     truth_boxes     = copy.deepcopy(truth_boxes)
     truth_labels    = copy.deepcopy(truth_labels)

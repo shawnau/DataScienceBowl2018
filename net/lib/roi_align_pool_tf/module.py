@@ -24,7 +24,7 @@ class CropAndResize(Module):
 
 
 # See more details on
-#     https://github.com/ppwwyyxx/tensorpack/blob/6d5ba6a970710eaaa14b89d24aace179eb8ee1af/examples/FasterRCNN/model.py#L301
+# https://github.com/ppwwyyxx/tensorpack/blob/6d5ba6a970710eaaa14b89d24aace179eb8ee1af/examples/FasterRCNN/model.py#L301
 class RoIAlign(Module):
     def __init__(self, crop_height, crop_width, spatial_scale):
         super(RoIAlign, self).__init__()

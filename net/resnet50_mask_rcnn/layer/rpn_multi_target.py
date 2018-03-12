@@ -66,6 +66,7 @@ def unflat_to_c3(data, num_bases, scales, H, W):
 
     return datas
 
+
 def draw_rpn_target_truth_box(image, truth_box, truth_label):
     image = image.copy()
     for b,l in zip(truth_box, truth_label):
@@ -74,9 +75,10 @@ def draw_rpn_target_truth_box(image, truth_box, truth_label):
             cv2.rectangle(image,(x0,y0), (x1,y1), (0,0,255), 1)
         else:
             cv2.rectangle(image,(x0,y0), (x1,y1), (255,255,255), 1)
-            #draw_dotted_rect(image,(x0,y0), (x1,y1), (0,0,255), )
+            # draw_dotted_rect(image,(x0,y0), (x1,y1), (0,0,255), )
 
     return image
+
 
 def draw_rpn_target_label(cfg, image, window, label, label_assign, label_weight):
 
@@ -92,9 +94,7 @@ def draw_rpn_target_label(cfg, image, window, label, label_assign, label_weight)
     label_assigns = unflat_to_c3(label_assign, num_bases, scales, H, W)
     label_weights = unflat_to_c3(label_weight, num_bases, scales, H, W)
 
-
-
-    all = []
+    all_label = []
     for l in range(num_scales):
         pyramid = cv2.resize(image, None, fx=1/scales[l],fy=1/scales[l])
 
@@ -106,10 +106,11 @@ def draw_rpn_target_label(cfg, image, window, label, label_assign, label_weight)
         ))
 
         a = cv2.resize(a, None, fx=scales[l],fy=scales[l],interpolation=cv2.INTER_NEAREST)
-        all.append(a)
+        all_label.append(a)
 
-    all = np.hstack(all)
-    return all
+    all_label = np.hstack(all_label)
+    return all_label
+
 
 def draw_rpn_target_target(cfg, image, window, target, target_weight):
 
@@ -164,7 +165,15 @@ def draw_rpn_target_target1(cfg, image, window, target, target_weight, is_before
 
 # cpu version
 def make_one_rpn_target(cfg, mode, input, window, truth_box, truth_label):
-
+    """
+    given bboxes, return positive/negative samples (balanced)
+    :return:
+        label: 1 for pos, 0 for neg for now
+        label_assign:
+        label_weight: bboxes' indices to consider as pos/neg is 1, other is 0 (negleted)
+        target: bboxes' offsets
+        target_weight: bboxes' indices to consider as pos/neg is 1, other is 0 (negleted)
+    """
     num_window = len(window)
     label         = np.zeros((num_window, ), np.float32)
     label_assign  = np.zeros((num_window, ), np.int32)
@@ -190,24 +199,21 @@ def make_one_rpn_target(cfg, mode, input, window, truth_box, truth_label):
         # label_weight [invalid_index]=0
         # target_weight[invalid_index]=0
 
-
-        # classification ---------------------------------------
-
+        # classification
         # bg
         overlap        = cython_box_overlap(window, truth_box)
         argmax_overlap = np.argmax(overlap,1)
         max_overlap    = overlap[np.arange(num_window),argmax_overlap]
 
-        bg_index = max_overlap <  cfg.rpn_train_bg_thresh_high
+        bg_index = max_overlap < cfg.rpn_train_bg_thresh_high
         label[bg_index] = 0
         label_weight[bg_index] = 1
 
         # fg
-        fg_index = max_overlap >=  cfg.rpn_train_fg_thresh_low
+        fg_index = max_overlap >= cfg.rpn_train_fg_thresh_low
         label[fg_index] = 1  #<todo> extend to multi-class ... need to modify regression below too
         label_weight[fg_index] = 1
         label_assign[...] = argmax_overlap
-
 
         # fg: for each truth, window with highest overlap, include multiple maxs
         argmax_overlap = np.argmax(overlap,0)
@@ -219,25 +225,20 @@ def make_one_rpn_target(cfg, mode, input, window, truth_box, truth_label):
         label_weight[fg_index] = 1
         label_assign[fg_index] = a
 
-
-        # regression ---------------------------------------
-
+        # regression
         fg_index         = np.where(label!=0)
         target_window    = window[fg_index]
         target_truth_box = truth_box[label_assign[fg_index]]
         target[fg_index] = rpn_encode(target_window, target_truth_box)
         target_weight[fg_index] = 1
 
-
-        #don't care------------
+        # don't care
         invalid_truth_label = np.where(truth_label<0)[0]
-        invalid_index = np.isin(label_assign, invalid_truth_label)  & (label!=0)
+        invalid_index = np.isin(label_assign, invalid_truth_label) & (label!=0)
         label_weight [invalid_index]=0
         target_weight[invalid_index]=0
 
-
-
-        #class balancing
+        # class balancing
         if 1:
             fg_index = np.where( (label_weight!=0) & (label!=0) )[0]
             bg_index = np.where( (label_weight!=0) & (label==0) )[0]
@@ -260,8 +261,7 @@ def make_one_rpn_target(cfg, mode, input, window, truth_box, truth_label):
         #task balancing
         target_weight[fg_index] = label_weight[fg_index]
 
-
-        if 0:  #<debug> ---------------------------------------
+        if 0:  # debug
             image = input.data.cpu().numpy()*255
             image = image.transpose((1,2,0)).astype(np.uint8).copy()
 
@@ -394,14 +394,6 @@ def make_rpn_target(cfg, mode, inputs, window, truth_boxes, truth_labels):
 #
 #
 
-
-
-
-
-
-
-
-#####################################################################################
 if __name__ == '__main__':
     print( '%s: calling main function ... ' % os.path.basename(__file__))
 

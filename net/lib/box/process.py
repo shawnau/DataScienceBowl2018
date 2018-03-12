@@ -4,10 +4,6 @@ from net.lib.box.nms.torch_nms import torch_nms
 from net.lib.box.nms.gpu_nms.gpu_nms import gpu_nms
 from net.lib.box.nms.cython_nms import cython_nms
 
-#from model.lib.box.nms.py_nms import py_nms
-#
-
-
 ## torch #####################################################################
 
 # Clip process to image boundaries.
@@ -277,11 +273,7 @@ def is_big_box(box, max_size):
     return (w>max_size or h>max_size)
 
 
-
-
-
 ## check  ##############################################################################
-
 def run_check_nms():
 
     #test nms:

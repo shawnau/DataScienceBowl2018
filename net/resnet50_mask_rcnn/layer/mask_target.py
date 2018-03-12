@@ -22,6 +22,13 @@ def add_truth_box_to_proposal(cfg, proposal, b, truth_box, truth_label, score=-1
 # mask target ********************************************************************
 #<todo> mask crop should match align kernel (same wait to handle non-integer pixel location (e.g. 23.5, 32.1))
 def crop_instance(instance, box, size, threshold=0.5):
+    """
+    :param instance: mask of (H, W) of input image
+    :param box: bbox on input image
+    :param size: size of the output of maskhead
+    :param threshold: used to define pos/neg pixels of the mask
+    :return: cropped & resized mask into size of the mask head
+    """
     H,W = instance.shape
     x0,y0,x1,y1 = np.rint(box).astype(np.int32)
     x0 = max(0,x0)
@@ -45,7 +52,7 @@ def crop_instance(instance, box, size, threshold=0.5):
     #print(x0,y0,x1,y1)
     crop = instance[y0:y1+1,x0:x1+1]
     crop = cv2.resize(crop,(size,size))
-    crop = (crop>threshold).astype(np.float32)
+    crop = (crop > threshold).astype(np.float32)
     return crop
 
 
@@ -59,8 +66,7 @@ def make_one_mask_target(cfg, mode, input, proposal, truth_box, truth_label, tru
     if len(truth_box)==0 or len(proposal)==0:
         return sampled_proposal, sampled_label, sampled_instance
 
-
-    #filter invalid proposal ---------------
+    # filter invalid proposal ---------------
     _,height,width = input.size()
     num_proposal = len(proposal)
 
@@ -74,16 +80,15 @@ def make_one_mask_target(cfg, mode, input, proposal, truth_box, truth_label, tru
         return sampled_proposal, sampled_label, sampled_instance
 
     proposal = proposal[valid]
-    #----------------------------------------
 
-
+    # ----------------------------------------
     num_proposal = len(proposal)
     box = proposal[:,1:5]
 
     overlap = cython_box_overlap(box, truth_box)
-    argmax_overlap = np.argmax(overlap,1)
+    argmax_overlap = np.argmax(overlap,1)  # for each bbox, the index of gt which has max overlap with it
     max_overlap = overlap[np.arange(num_proposal),argmax_overlap]
-    fg_index = np.where( max_overlap >= cfg.mask_train_fg_thresh_low)[0]
+    fg_index = np.where(max_overlap >= cfg.mask_train_fg_thresh_low)[0]
 
     if len(fg_index)==0:
         return sampled_proposal, sampled_label, sampled_instance
@@ -95,15 +100,14 @@ def make_one_mask_target(cfg, mode, input, proposal, truth_box, truth_label, tru
         np.random.choice(fg_length, size=num_fg, replace=fg_length<num_fg)
     ]
 
-
     sampled_proposal = proposal[fg_index]
-    sampled_assign   = argmax_overlap[fg_index]
-    sampled_label    = truth_label[sampled_assign]
+    sampled_assign   = argmax_overlap[fg_index]     # assign a gt to each bbox
+    sampled_label    = truth_label[sampled_assign]  # assign gt's label to each bbox
     sampled_instance = []
     for i in range(len(fg_index)):
-        instance = truth_instance[sampled_assign[i]]
+        instance = truth_instance[sampled_assign[i]]  # for each positive bbox, find instance it belongs to
         box  = sampled_proposal[i,1:5]
-        crop = crop_instance(instance, box, cfg.mask_size)
+        crop = crop_instance(instance, box, cfg.mask_size)  # crop the instance by box
         sampled_instance.append(crop[np.newaxis,:,:])
 
         #<debug>
@@ -125,7 +129,13 @@ def make_one_mask_target(cfg, mode, input, proposal, truth_box, truth_label, tru
 
 
 def make_mask_target(cfg, mode, inputs, proposals, truth_boxes, truth_labels, truth_instances):
-
+    """
+    :return:
+        sampled_proposals: bbox which has overlap with one gt > threshold
+        sampled_labels: class label of the bbox
+        sampled_assigns: which gt the bbox is assigned to
+        sampled_instances: cropped/resized instance mask into mask output (28*28)
+    """
     #<todo> take care of don't care ground truth. Here, we only ignore them  ---
     truth_boxes     = copy.deepcopy(truth_boxes)
     truth_labels    = copy.deepcopy(truth_labels)
@@ -174,8 +184,5 @@ def make_mask_target(cfg, mode, inputs, proposals, truth_boxes, truth_labels, tr
 
 
 if __name__ == '__main__':
-    print( '%s: calling main function ... ' % os.path.basename(__file__))
+    print('%s: calling main function ... ' % os.path.basename(__file__))
 
-
- 
- 

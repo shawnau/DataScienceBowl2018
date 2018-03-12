@@ -1,15 +1,12 @@
 import os, sys
 sys.path.append(os.path.dirname(__file__))
-
 from train_0 import *
 
-##--------------------------------------------------------------
 
-
-## overwrite functions ###
+# overwrite functions
 def revert(net, images):
 
-    def torch_clip_proposals (proposals, index, width, height):
+    def torch_clip_proposals(proposals, index, width, height):
         boxes = torch.stack((
              proposals[index,0],
              proposals[index,1].clamp(0, width  - 1),
@@ -21,13 +18,10 @@ def revert(net, images):
         ), 1)
         return proposals
 
-    # ----
-
     batch_size = len(images)
     for b in range(batch_size):
-        image  = images[b]
-        height,width  = image.shape[:2]
-
+        image = images[b]
+        height, width = image.shape[:2]
 
         # net.rpn_logits_flat  <todo>
         # net.rpn_deltas_flat  <todo>
@@ -40,10 +34,9 @@ def revert(net, images):
 
         # mask --
         # net.mask_logits
-        index = (net.detections[:,0]==b).nonzero().view(-1)
-        net.detections   = torch_clip_proposals (net.detections, index, width, height)
-
-        net.masks[b] = net.masks[b][:height,:width]
+        index = (net.detections[:,0] == b).nonzero().view(-1)
+        net.detections = torch_clip_proposals(net.detections, index, width, height)
+        net.masks[b] = net.masks[b][:height, :width]
 
     return net, image
 
@@ -52,7 +45,7 @@ def eval_augment(image, multi_mask, meta, index):
 
     pad_image = pad_to_factor(image, factor=16)
     input = torch.from_numpy(pad_image.transpose((2,0,1))).float().div(255)
-    box, label, instance  = multi_mask_to_annotation(multi_mask)
+    box, label, instance = multi_mask_to_annotation(multi_mask)
 
     return input, box, label, instance, meta, image, index
 
@@ -71,13 +64,12 @@ def eval_collate(batch):
 
     return [inputs, boxes, labels, instances, metas, images, indices]
 
-#--------------------------------------------------------------
+
 def run_evaluate():
 
-    out_dir  = RESULTS_DIR + '/mask-rcnn-50-gray500-02'
+    out_dir = RESULTS_DIR + '/mask-rcnn-50-gray500-02'
     initial_checkpoint = \
         RESULTS_DIR + '/mask-rcnn-50-gray500-02/checkpoint/00016500_model.pth'
-        ##
 
     ## setup  ---------------------------
     os.makedirs(out_dir +'/evaluate/overlays', exist_ok=True)
@@ -95,8 +87,7 @@ def run_evaluate():
     log.write('\tout_dir      = %s\n' % out_dir)
     log.write('\n')
 
-
-    ## net ------------------------------
+    # net ------------------------------
     cfg = Configuration()
     # cfg.rpn_train_nms_pre_score_threshold = 0.8 #0.885#0.5
     # cfg.rpn_test_nms_pre_score_threshold  = 0.8 #0.885#0.5
@@ -132,11 +123,7 @@ def run_evaluate():
     log.write('\tlen(test_dataset)  = %d\n'%(len(test_dataset)))
     log.write('\n')
 
-
-
-
-
-    ## start evaluation here! ##############################################
+    # start evaluation here!
     log.write('** start evaluation here! **\n')
     mask_average_precisions = []
     box_precisions_50  = []
@@ -200,9 +187,6 @@ def run_evaluate():
             mask_average_precisions.append(mask_average_precision)
             box_precisions_50.append(box_precision)
 
-
-
-
             # --------------------------------------------
             id = test_dataset.ids[indices[b]]
             name =id.split('/')[-1]
@@ -216,8 +200,6 @@ def run_evaluate():
 
             all6 = draw_multi_proposal_metric(cfg, image, detection, truth_box, truth_label,[0,255,255],[255,0,255],[255,255,0])
             all7 = draw_mask_metric(cfg, image, mask, truth_box, truth_label, truth_instance)
-
-
 
             #image_show('overlay_mask',overlay_mask)
             #image_show('overlay_truth',overlay_truth)
@@ -253,8 +235,6 @@ def run_evaluate():
     log.write('mask_average_precision = %0.5f\n'%mask_average_precisions.mean())
     log.write('box_precision@0.5 = %0.5f\n'%box_precisions_50.mean())
     log.write('\n')
-
-
 
 
 ## evaluate post process here ####-------------------------------------
@@ -330,19 +310,7 @@ def run_evaluate():
 #
 
 
-
-
-
-
-
-
-# main #################################################################
 if __name__ == '__main__':
     print( '%s: calling main function ... ' % os.path.basename(__file__))
-
-
     run_evaluate()
-
-
-
     print('\nsucess!')

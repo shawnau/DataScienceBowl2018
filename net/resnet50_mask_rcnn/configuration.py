@@ -6,18 +6,25 @@ import configparser
 # roi      i,x0,y0,x1,y1
 # box        x0,y0,x1,y1
 
+
 class Configuration(object):
 
     def __init__(self):
         super(Configuration, self).__init__()
         self.version='configuration version \'mask-rcnn-resnet50-fpn-kaggle\''
 
-        #net
-        self.num_classes = 2 #include background class
+        # net
+        # include background class
+        self.num_classes = 2
 
-        #multi-rpn
-        self.rpn_base_sizes         = [ 8, 16, 32, 64, ] #diameter
-        self.rpn_scales             = [ 2,  4,  8,  16 ]
+        # multi-rpn
+        # base size of the anchor box on imput image (2*a, diameter?)
+        self.rpn_base_sizes = [8, 16, 32, 64]
+        # 4 dirrerent zoom scales from each feature map to input.
+        # used to get stride of anchor boxes
+        # e.g. 2 for p1, 4 for p2, 8 for p3, 16 for p4.
+        # the smaller the feature map is, the bigger the anchor box will be
+        self.rpn_scales = [2,  4,  8, 16]
 
         aspect = lambda s,x: (s*1/x**0.5,s*x**0.5)
         # self.rpn_base_apsect_ratios = [
@@ -33,22 +40,20 @@ class Configuration(object):
             [(1,1), aspect(2**0.5,2), aspect(2**0.5,0.5),],
         ]
 
-
         self.rpn_train_bg_thresh_high = 0.5
         self.rpn_train_fg_thresh_low  = 0.5
 
         self.rpn_train_nms_pre_score_threshold = 0.7
-        self.rpn_train_nms_overlap_threshold   = 0.8  #higher for more proposals for mask training
+        self.rpn_train_nms_overlap_threshold   = 0.8  # higher for more proposals for mask training
         self.rpn_train_nms_min_size = 5
 
         self.rpn_test_nms_pre_score_threshold = 0.8
         self.rpn_test_nms_overlap_threshold   = 0.5
         self.rpn_test_nms_min_size = 5
 
-
-        #rcnn
+        # rcnn
         self.rcnn_crop_size         = 14
-        self.rcnn_train_batch_size  = 64 #per image
+        self.rcnn_train_batch_size  = 64  # per image
         self.rcnn_train_fg_fraction = 0.5
         self.rcnn_train_fg_thresh_low  = 0.5
         self.rcnn_train_bg_thresh_high = 0.5
@@ -62,14 +67,14 @@ class Configuration(object):
         self.rcnn_test_nms_overlap_threshold   = 0.5
         self.rcnn_test_nms_min_size = 5
 
-        #mask
+        # mask
         self.mask_crop_size            = 14
-        self.mask_train_batch_size     = 64 #per image
-        self.mask_size                 = 28 #per image
+        self.mask_train_batch_size     = 64  # per image
+        self.mask_size                 = 28  # per image
         self.mask_train_min_size       = 5
         self.mask_train_fg_thresh_low  = self.rpn_train_fg_thresh_low
 
-        self.mask_test_nms_pre_score_threshold = 0.4  #self.rpn_test_nms_pre_score_threshold
+        self.mask_test_nms_pre_score_threshold = 0.4  # self.rpn_test_nms_pre_score_threshold
         self.mask_test_nms_overlap_threshold = 0.1
         self.mask_test_mask_threshold  = 0.5
 
@@ -78,7 +83,7 @@ class Configuration(object):
         d = self.__dict__.copy()
         str=''
         for k, v in d.items():
-            str +=   '%32s = %s\n' % (k,v)
+            str += '%32s = %s\n' % (k,v)
 
         return str
 

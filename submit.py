@@ -108,7 +108,7 @@ def revert(net, images):
         # mask --
         # net.mask_logits
         index = (net.detections[:,0]==b).nonzero().view(-1)
-        net.detections = torch_clip_proposals (net.detections, index, width, height)
+        net.detections = torch_clip_proposals(net.detections, index, width, height)
 
         net.masks[b] = net.masks[b][:height,:width]
 
@@ -256,7 +256,7 @@ def run_submit(model_name, checkpoint, eval_split):
     log.write('\n')
 
 
-## post process #######################################################################################
+# post process
 def filter_small(multi_mask, threshold):
     num_masks = int(multi_mask.max())
 

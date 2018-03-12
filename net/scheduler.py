@@ -1,6 +1,7 @@
 # learning rate schduler
 from common import *
 
+
 # http://elgoacademy.org/anatomy-matplotlib-part-1/
 def plot_rates(fig, lrs, num_epoches, title=''):
 
@@ -35,8 +36,7 @@ def plot_rates(fig, lrs, num_epoches, title=''):
     ax.plot(epoches, lrs)
 
 
-
-## simple stepping rates
+# simple stepping rates
 class StepLR():
     def __init__(self, pairs):
         super(StepLR, self).__init__()
@@ -67,7 +67,7 @@ class StepLR():
         return string
 
 
-## https://github.com/pytorch/tutorials/blob/master/beginner_source/transfer_learning_tutorial.py
+# https://github.com/pytorch/tutorials/blob/master/beginner_source/transfer_learning_tutorial.py
 class DecayLR():
     def __init__(self, base_lr, decay, step):
         super(DecayLR, self).__init__()
@@ -87,12 +87,9 @@ class DecayLR():
         return string
 
 
-
-
 # 'Cyclical Learning Rates for Training Neural Networks'- Leslie N. Smith, arxiv 2017
 #       https://arxiv.org/abs/1506.01186
 #       https://github.com/bckenstler/CLR
-
 class CyclicLR():
 
     def __init__(self, base_lr=0.001, max_lr=0.006, step=2000., mode='triangular',
@@ -158,7 +155,6 @@ class CyclicLR():
         return string
 
 
-
 # net ------------------------------------
 # https://github.com/pytorch/examples/blob/master/imagenet/main.py ###############
 def adjust_learning_rate(optimizer, lr):
@@ -176,23 +172,15 @@ def get_learning_rate(optimizer):
     return lr
 
 
-
-
-
-# main #################################################################
 if __name__ == '__main__':
     print( '%s: calling main function ... ' % os.path.basename(__file__))
 
     num_epoches=50
     num_its=420
 
-
     #LR = StepLR([ (0,0.1),  (10,0.01),  (25,0.005),  (35,0.001), (40,0.0001), (43,-1)])
-
-
     #LR = DecayLR (base_lr=0.1, decay=0.32, step=10)
     LR = CyclicLR(base_lr=0.0001, max_lr=0.01, step=5., mode='triangular2', gamma=1., scale_fn=None, scale_mode='cycle') ##exp_range ##triangular2
-
 
     lrs = np.zeros((num_epoches),np.float32)
     for epoch in range(num_epoches):
@@ -203,9 +191,7 @@ if __name__ == '__main__':
             num_epoches = epoch
             break
         print ('epoch=%02d,  lr=%f'%(epoch,lr))
-
-
-    #plot
+    # plot
     fig = plt.figure()
     plot_rates(fig, lrs, num_epoches, title=str(LR))
     plt.show()

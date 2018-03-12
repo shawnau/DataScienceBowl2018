@@ -9,7 +9,7 @@ from net.lib.box.process import *
 
 #data reader  ----------------------------------------------------------------
 MIN_SIZE =  6
-MAX_SIZE =  128  #np.inf
+MAX_SIZE =  128  # np.inf
 IGNORE_BOUNDARY = -1
 IGNORE_SMALL    = -2
 IGNORE_BIG      = -3
@@ -130,7 +130,24 @@ def mask_to_inner_contour(mask):
     )
     return contour
 
+
 def multi_mask_to_annotation(multi_mask):
+    """
+    :param multi_mask: a map records masks. e.g.
+        [[0, 1, 1, 0],
+         [2, 0, 0, 3],
+         [2, 0, 3, 3]]
+        for 3 masks in a 4*4 input
+    :return:
+        box: lists of diameter coords. e.g.
+            [[x0, y0, x1, y1], ...]
+        label: currently all labels are 1 (for foreground only)
+        instance: list of one vs all masks. e.g.
+            [[0, 1, 1, 0],
+             [0, 0, 0, 0],
+             [0, 0, 0, 0]]
+            for thr first mask of all masks, a total of 3 lists in this case
+    """
     H,W      = multi_mask.shape[:2]
     box      = []
     label    = []
@@ -138,17 +155,16 @@ def multi_mask_to_annotation(multi_mask):
 
     num_masks = multi_mask.max()
     for i in range(num_masks):
-        mask = (multi_mask==(i+1))
-        if mask.sum()>1:
+        mask = (multi_mask == (i+1))
+        if mask.sum() > 1:
 
-            y,x = np.where(mask)
+            y, x = np.where(mask)
             y0 = y.min()
             y1 = y.max()
             x0 = x.min()
             x1 = x.max()
             w = (x1-x0)+1
             h = (y1-y0)+1
-
 
             border = max(2, round(0.2*(w+h)/2))
             #border = max(1, round(0.1*min(w,h)))
@@ -163,7 +179,6 @@ def multi_mask_to_annotation(multi_mask):
             y0 = max(0,y0)
             x1 = min(W-1,x1)
             y1 = min(H-1,y1)
-
 
             #label
             l = 1 #<todo> support multiclass later ... ?

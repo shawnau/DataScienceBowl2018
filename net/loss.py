@@ -1,5 +1,6 @@
 from common import *
 
+
 #  https://github.com/bermanmaxim/jaccardSegment/blob/master/losses.py
 #  https://discuss.pytorch.org/t/solved-what-is-the-correct-way-to-implement-custom-loss-function/3568/4
 class CrossEntropyLoss2d(nn.Module):
@@ -9,6 +10,7 @@ class CrossEntropyLoss2d(nn.Module):
 
     def forward(self, logits, targets):
         return self.nll_loss(F.log_softmax(logits), targets)
+
 
 class BCELoss2d(nn.Module):
     def __init__(self, weight=None, size_average=True):
@@ -26,9 +28,7 @@ class SoftDiceLoss(nn.Module):
     def __init__(self):  #weight=None, size_average=True):
         super(SoftDiceLoss, self).__init__()
 
-
     def forward(self, logits, targets):
-
         probs = F.sigmoid(logits)
         num = targets.size(0)
         m1  = probs.view(num,-1)
@@ -39,8 +39,7 @@ class SoftDiceLoss(nn.Module):
         return score
 
 
-
-##  http://geek.csdn.net/news/detail/126833
+# http://geek.csdn.net/news/detail/126833
 class WeightedBCELoss2d(nn.Module):
     def __init__(self):
         super(WeightedBCELoss2d, self).__init__()
@@ -52,6 +51,7 @@ class WeightedBCELoss2d(nn.Module):
         loss = w*z.clamp(min=0) - w*z*t + w*torch.log(1 + torch.exp(-z.abs()))
         loss = loss.sum()/w.sum()
         return loss
+
 
 class WeightedSoftDiceLoss(nn.Module):
     def __init__(self):
@@ -70,19 +70,14 @@ class WeightedSoftDiceLoss(nn.Module):
         return score
 
 
-#https://github.com/marvis/pytorch-yolo2/blob/master/FocalLoss.py
-
+# https://github.com/marvis/pytorch-yolo2/blob/master/FocalLoss.py
 class FocalLoss2d(nn.Module):
-
     def __init__(self, gamma=2, size_average=True):
         super(FocalLoss2d, self).__init__()
-
         self.gamma = gamma
         self.size_average = size_average
 
-
     def forward(self, logits, targets):
-
         probs  = F.sigmoid(logits)
         probs  = probs.view(-1, 1)
         probs  = torch.cat((1-probs, probs), 1)
@@ -115,13 +110,12 @@ def dice_loss(m1, m2, is_average=True):
 
 
 def multi_loss(logits, labels):
-    #l = BCELoss2d()(logits, labels)
-
+    # l = BCELoss2d()(logits, labels)
 
     if 0:
         l = BCELoss2d()(logits, labels) + SoftDiceLoss()(logits, labels)
 
-    #compute weights
+    # compute weights
     else:
         batch_size,C,H,W = labels.size()
         weights = Variable(torch.tensor.torch.ones(labels.size())).cuda()
@@ -143,13 +137,6 @@ def multi_loss(logits, labels):
     return l
 
 
-#
-#
-#
-#
-#
-#
-#
 # class SoftCrossEntroyLoss(nn.Module):
 #     def __init__(self):
 #         super(SoftCrossEntroyLoss, self).__init__()
@@ -190,24 +177,6 @@ def multi_loss(logits, labels):
 #         accuracy.append(c.mul_(1. / batch_size))
 #     return accuracy
 #
-#
-# ## focal loss ## ---------------------------------------------------
-# class CrossEntroyLoss(nn.Module):
-#     def __init__(self):
-#         super(CrossEntroyLoss, self).__init__()
-#
-#     def forward(self, logits, labels):
-#         #batch_size, num_classes =  logits.size()
-#         # labels = labels.view(-1,1)
-#         # logits = logits.view(-1,num_classes)
-#
-#         max_logits  = logits.max()
-#         log_sum_exp = torch.log(torch.sum(torch.exp(logits-max_logits), 1))
-#         loss = log_sum_exp - logits.gather(dim=1, index=labels.view(-1,1)).view(-1) + max_logits
-#         loss = loss.mean()
-#
-#         return loss
-#
 # ## https://github.com/unsky/focal-loss
 # ## https://github.com/sciencefans/Focal-Loss
 # ## https://www.kaggle.com/c/carvana-image-masking-challenge/discussion/39951
@@ -235,8 +204,6 @@ def multi_loss(logits, labels):
 #         return loss
 #
 #
-#
-#
 # # https://arxiv.org/pdf/1511.05042.pdf
 # class TalyorCrossEntroyLoss(nn.Module):
 #     def __init__(self):
@@ -253,7 +220,7 @@ def multi_loss(logits, labels):
 #
 #         return loss
 #
-# # check #################################################################
+# # check
 # def run_check_focal_loss():
 #     batch_size  = 64
 #     num_classes = 15
@@ -269,22 +236,22 @@ def multi_loss(logits, labels):
 #     print (loss)
 #
 #
-# def run_check_soft_cross_entropy_loss():
-#     batch_size  = 64
-#     num_classes = 15
-#
-#     logits = np.random.uniform(-2,2,size=(batch_size,num_classes))
-#     soft_labels = np.random.uniform(-2,2,size=(batch_size,num_classes))
-#
-#     logits = Variable(torch.from_numpy(logits)).cuda()
-#     soft_labels = Variable(torch.from_numpy(soft_labels)).cuda()
-#     soft_labels = F.softmax(soft_labels,1)
-#
-#     soft_cross_entropy_loss = SoftCrossEntroyLoss()
-#     loss = soft_cross_entropy_loss(logits, soft_labels)
-#     print (loss)
+def run_check_soft_cross_entropy_loss():
+    batch_size  = 64
+    num_classes = 15
 
-# main #################################################################
+    logits = np.random.uniform(-2,2,size=(batch_size,num_classes))
+    soft_labels = np.random.uniform(-2,2,size=(batch_size,num_classes))
+
+    logits = Variable(torch.from_numpy(logits)).cuda()
+    soft_labels = Variable(torch.from_numpy(soft_labels)).cuda()
+    soft_labels = F.softmax(soft_labels,1)
+
+    cross_entropy_loss = CrossEntropyLoss2d()
+    loss = cross_entropy_loss(logits, soft_labels)
+    print(loss)
+
+
 if __name__ == '__main__':
     print( '%s: calling main function ... ' % os.path.basename(__file__))
 

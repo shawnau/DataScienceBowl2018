@@ -7,8 +7,8 @@ def weighted_binary_cross_entropy_with_logits(logits, labels, weights):
     loss = (weights*loss).sum()/(weights.sum()+1e-12)
 
     return loss
-	
-	
+
+
 def binary_cross_entropy_with_logits(logits, labels):
 
     loss = logits.clamp(min=0) - logits*labels + torch.log(1 + torch.exp(-logits.abs()))
@@ -17,7 +17,7 @@ def binary_cross_entropy_with_logits(logits, labels):
     return loss
 
 
-def mask_loss(logits, labels, instances ):
+def mask_loss(logits, labels, instances):
 
     batch_size, num_classes = logits.size(0), logits.size(1)
 
@@ -37,9 +37,5 @@ def mask_loss(logits, labels, instances ):
     return loss
 
 
-
-# #-----------------------------------------------------------------------------
 if __name__ == '__main__':
     print( '%s: calling main function ... ' % os.path.basename(__file__))
-
- 

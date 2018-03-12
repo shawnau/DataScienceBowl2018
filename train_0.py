@@ -4,7 +4,7 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '0'  #'3,2' #'3,2,1,0'
 from common import *
 from utility.file import *
 from dataset.reader import *
-from net.rate import *
+from net.scheduler import *
 from net.metric import *
 
 
@@ -36,7 +36,7 @@ class TrainFolder:
 def train_augment(image, multi_mask, meta, index):
 
     image, multi_mask = \
-        random_shift_scale_rotate_transform2(
+        random_shift_scale_rotate_transform(
             image, multi_mask,
             shift_limit=[0, 0],
             scale_limit=[1/2, 2],
@@ -50,24 +50,21 @@ def train_augment(image, multi_mask, meta, index):
     # image_show('overlay1',overlay1)
     # cv2.waitKey(0)
 
-    image, multi_mask = random_crop_transform2(image, multi_mask, WIDTH, HEIGHT, u=0.5)
-    image, multi_mask = random_horizontal_flip_transform2(image, multi_mask, 0.5)
-    image, multi_mask = random_vertical_flip_transform2(image, multi_mask, 0.5)
-    image, multi_mask = random_rotate90_transform2(image, multi_mask, 0.5)
+    image, multi_mask = random_crop_transform(image, multi_mask, WIDTH, HEIGHT, u=0.5)
+    image, multi_mask = random_horizontal_flip_transform(image, multi_mask, 0.5)
+    image, multi_mask = random_vertical_flip_transform(image, multi_mask, 0.5)
+    image, multi_mask = random_rotate90_transform(image, multi_mask, 0.5)
     ##image,  multi_mask = fix_crop_transform2(image, multi_mask, -1,-1,WIDTH, HEIGHT)
 
-    #---------------------------------------
     input = torch.from_numpy(image.transpose((2,0,1))).float().div(255)
-    box, label, instance  = multi_mask_to_annotation(multi_mask)
+    box, label, instance = multi_mask_to_annotation(multi_mask)
 
     return input, box, label, instance, meta, index
 
 
 def valid_augment(image, multi_mask, meta, index):
 
-    image,  multi_mask = fix_crop_transform2(image, multi_mask, -1,-1,WIDTH, HEIGHT)
-
-    #---------------------------------------
+    image,  multi_mask = fix_crop_transform(image, multi_mask, -1, -1, WIDTH, HEIGHT)
     input = torch.from_numpy(image.transpose((2,0,1))).float().div(255)
     box, label, instance  = multi_mask_to_annotation(multi_mask)
 
@@ -88,7 +85,6 @@ def make_collate(batch):
     return [inputs, boxes, labels, instances, metas, indices]
 
 
-# training ##############################################################
 def evaluate(net, test_loader):
 
     test_num  = 0
@@ -104,7 +100,7 @@ def evaluate(net, test_loader):
         # acc    = dice_loss(masks, labels) #todo
 
         batch_size = len(indices)
-        test_acc  += 0 #batch_size*acc[0][0]
+        test_acc  += 0 # batch_size*acc[0][0]
         test_loss += batch_size*np.array((
                            loss.cpu().data.numpy(),
                            net.rpn_cls_loss.cpu().data.numpy(),
@@ -168,7 +164,6 @@ def run_train(model_name, train_split, valid_split, checkpoint=None, pretrain_fi
     iter_valid  = 100
     iter_save   = [0, num_iters-1] + list(range(0, num_iters, 500))  # 1*1000
 
-
     LR = None  #LR = StepLR([ (0, 0.01),  (200, 0.001),  (300, -1)])
     optimizer = optim.SGD(filter(lambda p: p.requires_grad, net.parameters()),
                           lr=0.01/iter_accum,
@@ -190,14 +185,7 @@ def run_train(model_name, train_split, valid_split, checkpoint=None, pretrain_fi
     # dataset -------------------------------------------------
     log.write('** dataset setting **\n')
 
-    train_dataset = ScienceDataset(
-                            train_split, mode='train',
-                            #'debug1_ids_gray_only_10', mode='train',
-                            #'disk0_ids_dummy_9', mode='train', #12
-                            #'train1_ids_purple_only1_101', mode='train', #12
-                            #'merge1_1', mode='train',
-                            transform=train_augment)
-
+    train_dataset = ScienceDataset(train_split, mode='train', transform=train_augment)
     train_loader  = DataLoader(
                         train_dataset,
                         sampler     = RandomSampler(train_dataset),
@@ -207,14 +195,7 @@ def run_train(model_name, train_split, valid_split, checkpoint=None, pretrain_fi
                         pin_memory  = True,
                         collate_fn  = make_collate)
 
-    valid_dataset = ScienceDataset(
-                            valid_split, mode='train',
-                            #'debug1_ids_gray_only_10', mode='train',
-                            #'disk0_ids_dummy_9', mode='train',
-                            #'train1_ids_purple_only1_101', mode='train', #12
-                            #'merge1_1', mode='train',
-                            transform = valid_augment)
-
+    valid_dataset = ScienceDataset(valid_split, mode='train', transform=valid_augment)
     valid_loader  = DataLoader(
                         valid_dataset,
                         sampler     = SequentialSampler(valid_dataset),
@@ -235,38 +216,6 @@ def run_train(model_name, train_split, valid_split, checkpoint=None, pretrain_fi
     log.write('\titer_accum  = %d\n' % iter_accum)
     log.write('\tbatch_size*iter_accum  = %d\n' % (batch_size*iter_accum))
     log.write('\n')
-
-    # debug -------------------------------------------------
-    if 0:
-        for inputs, truth_boxes, truth_labels, truth_instances, metas, indices in valid_loader:
-
-            batch_size, C, H, W = inputs.size()
-            print('batch_size=%d' % batch_size)
-
-            images = inputs.cpu().numpy()
-            for b in range(batch_size):
-                image = (images[b].transpose((1,2,0))*255)
-                image = np.clip(image.astype(np.float32)*2,0,255)
-
-                contour_overlay = image.copy()
-                box_overlay = image.copy()
-
-                truth_box      = truth_boxes[b]
-                truth_label    = truth_labels[b]
-                truth_instance = truth_instances[b]
-                for box,label,instance in zip(truth_box,truth_label,truth_instance):
-                    print('label=%d'%label)
-
-                    x0, y0, x1, y1 = box.astype(np.int32)
-                    cv2.rectangle(box_overlay, (x0, y0), (x1, y1), (0, 0, 255), 1)
-
-                    mask = instance > 0.5
-                    contour = mask_to_inner_contour(mask)
-                    contour_overlay[contour] = [0, 255, 0]
-
-                image_show('contour_overlay', contour_overlay)
-                image_show('box_overlay', box_overlay)
-                cv2.waitKey(0)
 
     # start training here! -------------------------------------------------
     log.write('** start training here! **\n')
@@ -337,7 +286,7 @@ def run_train(model_name, train_split, valid_split, checkpoint=None, pretrain_fi
             # learning rate schduler -------------------------------------------------
             if LR is not None:
                 lr = LR.get_rate(i)
-                if lr < 0 :
+                if lr < 0:
                     break
                 adjust_learning_rate(optimizer, lr/iter_accum)
             rate = get_learning_rate(optimizer)*iter_accum
@@ -345,7 +294,7 @@ def run_train(model_name, train_split, valid_split, checkpoint=None, pretrain_fi
             # one iteration update  -------------------------------------------------
             inputs = Variable(inputs).cuda()
             net(inputs, truth_boxes, truth_labels, truth_instances)
-            loss = net.loss(inputs, truth_boxes, truth_labels, truth_instances)
+            loss = net.loss()
 
             # accumulated update
             loss.backward()
@@ -376,118 +325,16 @@ def run_train(model_name, train_split, valid_split, checkpoint=None, pretrain_fi
 
             print('\r%0.4f %5.1f k %6.1f %4.1f m | %0.3f   %0.2f %0.2f   %0.2f %0.2f   %0.2f | %0.3f   %0.2f %0.2f   %0.2f %0.2f   %0.2f | %0.3f   %0.2f %0.2f   %0.2f %0.2f   %0.2f | %s  %d,%d,%s' % (\
                          rate, i/1000, epoch, num_products/1000000,
-                         valid_loss[0], valid_loss[1], valid_loss[2], valid_loss[3], valid_loss[4], valid_loss[5],#valid_acc,
-                         train_loss[0], train_loss[1], train_loss[2], train_loss[3], train_loss[4], train_loss[5],#train_acc,
-                         batch_loss[0], batch_loss[1], batch_loss[2], batch_loss[3], batch_loss[4], batch_loss[5],#batch_acc,
+                         valid_loss[0], valid_loss[1], valid_loss[2], valid_loss[3], valid_loss[4], valid_loss[5], # valid_acc,
+                         train_loss[0], train_loss[1], train_loss[2], train_loss[3], train_loss[4], train_loss[5], # train_acc,
+                         batch_loss[0], batch_loss[1], batch_loss[2], batch_loss[3], batch_loss[4], batch_loss[5], # batch_acc,
                          time_to_str((timer() - start)/60) ,i,j, ''), end='', flush=True)#str(inputs.size()))
             j = j+1
-
-            # debug -------------------------------------------------
-            if 1:
-            # if i % 10==0:
-                net.set_mode('test')
-                with torch.no_grad():
-                    net(inputs, truth_boxes, truth_labels, truth_instances)
-
-                batch_size, C, H, W = inputs.size()
-                images = inputs.data.cpu().numpy()
-                window          = net.rpn_window
-                rpn_logits_flat = net.rpn_logits_flat.data.cpu().numpy()
-                rpn_deltas_flat = net.rpn_deltas_flat.data.cpu().numpy()
-                rpn_proposals   = net.rpn_proposals.data.cpu().numpy()
-
-                rcnn_logits     = net.rcnn_logits.data.cpu().numpy()
-                rcnn_deltas     = net.rcnn_deltas.data.cpu().numpy()
-                rcnn_proposals  = net.rcnn_proposals.data.cpu().numpy()
-
-                detections = net.detections.data.cpu().numpy()
-                masks      = net.masks
-
-                #print('train',batch_size)
-                for b in range(batch_size): 
-
-                    image = (images[b].transpose((1, 2, 0))*255)
-                    image = image.astype(np.uint8)
-                    #image = np.clip(image.astype(np.float32)*2,0,255).astype(np.uint8)  #improve contrast
-
-                    truth_box      = truth_boxes[b]
-                    truth_label    = truth_labels[b]
-                    truth_instance = truth_instances[b]
-                    truth_mask     = instance_to_multi_mask(truth_instance)
-
-                    rpn_logit_flat = rpn_logits_flat[b]
-                    rpn_delta_flat = rpn_deltas_flat[b]
-                    rpn_prob_flat  = np_softmax(rpn_logit_flat)
-
-                    rpn_proposal = np.zeros((0, 7),np.float32)
-                    if len(rpn_proposals) > 0:
-                        index = np.where(rpn_proposals[:,0] == b)[0]
-                        rpn_proposal   = rpn_proposals[index]
-
-                    rcnn_proposal = np.zeros((0, 7),np.float32)
-                    if len(rcnn_proposals) > 0:
-                        index = np.where(rcnn_proposals[:,0] == b)[0]
-                        rcnn_logit     = rcnn_logits[index]
-                        rcnn_delta     = rcnn_deltas[index]
-                        rcnn_prob      = np_softmax(rcnn_logit)
-                        rcnn_proposal  = rcnn_proposals[index]
-
-                    mask = masks[b]
-
-                    #box = proposal[:,1:5]
-                    #mask = masks[b]
-
-                    ## draw --------------------------------------------------------------------------
-                    #contour_overlay = multi_mask_to_contour_overlay(truth_mask, image, [255,255,0] )
-                    #color_overlay   = multi_mask_to_color_overlay(mask)
-
-                    #all1 = draw_multi_rpn_prob(cfg, image, rpn_prob_flat)
-                    #all2 = draw_multi_rpn_delta(cfg, overlay_contour, rpn_prob_flat, rpn_delta_flat, window,[0,0,255])
-                    #all3 = draw_multi_rpn_proposal(cfg, image, proposal)
-                    #all4 = draw_truth_box(cfg, image, truth_box, truth_label)
-
-                    all5 = draw_multi_proposal_metric(cfg, image, rpn_proposal,  truth_box, truth_label,[0,255,255],[255,0,255],[255,255,0])
-                    all6 = draw_multi_proposal_metric(cfg, image, rcnn_proposal, truth_box, truth_label,[0,255,255],[255,0,255],[255,255,0])
-                    all7 = draw_mask_metric(cfg, image, mask, truth_box, truth_label, truth_instance)
-
-                    # image_show('color_overlay',color_overlay,1)
-                    # image_show('rpn_prob',all1,1)
-                    # image_show('rpn_prob',all1,1)
-                    # image_show('rpn_delta',all2,1)
-                    # image_show('rpn_proposal',all3,1)
-                    # image_show('truth_box',all4,1)
-                    # image_show('rpn_precision',all5,1)
-                    # image_show('rpn_precision',  all5, 1)
-                    # image_show('rcnn_precision', all6, 1)
-                    # image_show('mask_precision', all7, 1)
-
-
-                    # summary = np.vstack([
-                    #     all5,
-                    #     np.hstack([
-                    #         all1,
-                    #         np.vstack( [all2, np.zeros((H,2*W,3),np.uint8)])
-                    #     ])
-                    # ])
-                    # draw_shadow_text(summary, 'iter=%08d'%i,  (5,3*HEIGHT-15),0.5, (255,255,255), 1)
-                    # image_show('summary',summary,1)
-
-                    # name = train_dataset.ids[indices[b]].split('/')[-1]
-                    # cv2.imwrite(out_dir +'/train/%s.png'%name,summary)
-                    # cv2.imwrite(out_dir +'/train/%05d.png'%b,summary)
-
-                    cv2.imwrite(os.path.join(f.train_result, '%05d.rpn_precision.png'%b),  all5)
-                    cv2.imwrite(os.path.join(f.train_result, '%05d.rcnn_precision.png'%b), all6)
-                    cv2.waitKey(1)
-                    pass
-
-                net.set_mode('train')
-            # debug -------------------------------------------------
-
         pass  # end of one data loader
     pass  # end of all iterations
 
-    if 1: #save last
+    # save last
+    if 1:
         model_config_path = os.path.join(work_dir, 'checkpoint', 'configuration.pkl')
         model_path = os.path.join(work_dir, 'checkpoint', '%d_model.pth'%i)
         optimizer_path = os.path.join(work_dir, 'checkpoint', '%08d_optimizer.pth'%i)

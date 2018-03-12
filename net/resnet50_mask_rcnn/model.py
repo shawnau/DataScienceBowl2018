@@ -127,7 +127,6 @@ class FeatureNet(nn.Module):
         c3 = self.layer_c3(c2)       #; print('layer_c3 ',c3.size())
         c4 = self.layer_c4(c3)       #; print('layer_c4 ',c4.size())
 
-
         p4 = self.layer_p4(c4)       #; print('layer_p4 ',p4.size())
         p3 = self.layer_p3(c3, p4)   #; print('layer_p3 ',p3.size())
         p2 = self.layer_p2(c2, p3)   #; print('layer_p2 ',p2.size())
@@ -176,7 +175,7 @@ class RpnMultiHead(nn.Module):
             f = fs[l]
             f = F.relu(self.convs[l](f))
 
-            f = F.dropout(f, p=0.5,training=self.training)
+            f = F.dropout(f, p=0.5, training=self.training)
             logit = self.logits[l](f)
             delta = self.deltas[l](f)
 
@@ -185,15 +184,26 @@ class RpnMultiHead(nn.Module):
             logits_flat.append(logit_flat)
             deltas_flat.append(delta_flat)
 
-        logits_flat = torch.cat(logits_flat,1)
-        deltas_flat = torch.cat(deltas_flat,1)
+        logits_flat = torch.cat(logits_flat, 1)
+        deltas_flat = torch.cat(deltas_flat, 1)
 
         return logits_flat, deltas_flat
 
 
 # https://qiita.com/yu4u/items/5cbe9db166a5d72f9eb8
-
 class CropRoi(nn.Module):
+    """
+    RoiAlign
+    :param:
+        cfg: configure
+        crop_size: size of output of RoiAlign. e.g. 14 (means 14*14)
+    :Input:
+        fs: features from FPN-ResNet50, e.g. [p1, p2, p3, p4]
+        proposals: proposals. e.g.
+            [i, x0, y0, x1, y1, score, label]
+    :return:
+        cropped feature map using RoiAlign
+    """
     def __init__(self, cfg, crop_size):
         super(CropRoi, self).__init__()
         self.num_scales = len(cfg.rpn_scales)
@@ -210,15 +220,16 @@ class CropRoi(nn.Module):
     def forward(self, fs, proposals):
         num_proposals = len(proposals)
 
-        ## this is  complicated. we need to decide for a given roi, which of the p0,p1, ..p3 layers to pool from
-        boxes = proposals.detach().data[:,1:5]
-        sizes = boxes[:,2:]-boxes[:,:2]
-        sizes = torch.sqrt(sizes[:,0]*sizes[:,1])
-        distances = torch.abs(sizes.view(num_proposals,1).expand(num_proposals,4) \
-                              - torch.from_numpy(np.array(self.sizes,np.float32)).cuda())
+        # this is  complicated. we need to decide for a given roi,
+        # which of the p0,p1, ..p3 layers to pool from
+        boxes = proposals.detach().data[:, 1:5]
+        sizes = boxes[:, 2:]-boxes[:, :2]
+        sizes = torch.sqrt(sizes[:, 0]*sizes[:, 1])
+        distances = torch.abs(sizes.view(num_proposals, 1).expand(num_proposals, 4) \
+                              - torch.from_numpy(np.array(self.sizes, np.float32)).cuda())
         min_distances, min_index = distances.min(1)
 
-        rois = proposals.detach().data[:,0:5]
+        rois = proposals.detach().data[:, 0:5]
         rois = Variable(rois)
 
         crops   = []
@@ -234,8 +245,7 @@ class CropRoi(nn.Module):
         crops   = torch.cat(crops,0)
         indices = torch.cat(indices,0).view(-1)
         crops   = crops[torch.sort(indices)[1]]
-        #crops = torch.index_select(crops,0,index)
-
+        # crops = torch.index_select(crops,0,index)
         return crops
 
 
@@ -260,36 +270,6 @@ class RcnnHead(nn.Module):
         deltas = self.delta(x)
 
         return logits, deltas
-
-
-# class CropRoi(nn.Module):
-#     def __init__(self, cfg, in_channels, out_channels ):
-#         super(CropRoi, self).__init__()
-#         self.num_scales = len(cfg.rpn_scales)
-#         self.scales     = cfg.rpn_scales
-#         self.crop_size  = cfg.crop_size
-#
-#         self.convs = nn.ModuleList()
-#         self.crops = nn.ModuleList()
-#         for l in range(self.num_scales):
-#             self.convs.append(
-#                 nn.Conv2d( in_channels, out_channels//self.num_scales, kernel_size=1, padding=0, bias=False),
-#             )
-#             self.crops.append(
-#                 Crop(self.crop_size, self.crop_size, 1/self.scales[l]),
-#             )
-#
-#
-#     def forward(self, fs, proposals):
-#         rois = proposals[:,0:5]
-#         crops=[]
-#         for l in range(self.num_scales):
-#             c = self.convs[l](fs[l])
-#             c = self.crops[l](c,rois)
-#             crops.append(c)
-#         crops = torch.cat(crops,1)
-#
-#         return crops
 
 
 class MaskHead(nn.Module):
@@ -345,15 +325,17 @@ class MaskRcnnNet(nn.Module):
 
         cfg  = self.cfg
         mode = self.mode
-        batch_size = len(inputs)
 
-        #features
+        # features
         features = data_parallel(self.feature_net, inputs)
 
-        #rpn proposals -------------------------------------------
+        # rpn proposals -------------------------------------------
         self.rpn_logits_flat, self.rpn_deltas_flat = data_parallel(self.rpn_head, features)
         self.rpn_window    = make_rpn_windows(cfg, features)
-        self.rpn_proposals = rpn_nms(cfg, mode, inputs, self.rpn_window, self.rpn_logits_flat, self.rpn_deltas_flat)
+        self.rpn_proposals = rpn_nms(cfg, mode, inputs,
+                                     self.rpn_window,
+                                     self.rpn_logits_flat,
+                                     self.rpn_deltas_flat)
 
         if mode in ['train', 'valid']:
             self.rpn_labels, \
@@ -375,8 +357,7 @@ class MaskRcnnNet(nn.Module):
                                  truth_boxes,
                                  truth_labels)
 
-
-        #rcnn proposals ------------------------------------------------
+        # rcnn proposals ------------------------------------------------
         self.rcnn_proposals = self.rpn_proposals
         if len(self.rpn_proposals) > 0:
             rcnn_crops = self.rcnn_crop(features, self.rpn_proposals)
@@ -401,14 +382,14 @@ class MaskRcnnNet(nn.Module):
         self.detections = self.rcnn_proposals
         self.masks      = make_empty_masks(cfg, mode, inputs)
 
-        if len(self.detections)>0:
+        if len(self.detections) > 0:
               mask_crops = self.mask_crop(features, self.detections)
               self.mask_logits = data_parallel(self.mask_head, mask_crops)
               self.masks = mask_nms(cfg, mode, inputs,
                                     self.detections,
                                     self.mask_logits) #<todo> better nms for mask
 
-    def loss(self, inputs, truth_boxes, truth_labels, truth_instances):
+    def loss(self):
 
         self.rpn_cls_loss, self.rpn_reg_loss = \
            rpn_loss(self.rpn_logits_flat,
@@ -448,7 +429,6 @@ class MaskRcnnNet(nn.Module):
             self.train()
         else:
             raise NotImplementedError
-
 
     def load_pretrain(self, pretrain_file, skip=[]):
         pretrain_state_dict = torch.load(pretrain_file)
@@ -500,7 +480,6 @@ def run_check_multi_rpn_head():
         f = np.random.uniform(-1,1,size=(batch_size,in_channels,h,w)).astype(np.float32)
         f = Variable(torch.from_numpy(f)).cuda()
         fs.append(f)
-
 
     cfg = Configuration()
     rpn_head = RpnMultiHead(cfg, in_channels).cuda()
