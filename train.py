@@ -39,19 +39,19 @@ def train_augment(image, multi_mask, meta, index):
     image, multi_mask = random_vertical_flip_transform(image, multi_mask, 0.5)
     image, multi_mask = random_rotate90_transform(image, multi_mask, 0.5)
 
-    input = torch.from_numpy(image.transpose((2,0,1))).float().div(255)
+    input_image = torch.from_numpy(image.transpose((2, 0, 1))).float().div(255)
     box, label, instance = multi_mask_to_annotation(multi_mask)
 
-    return input, box, label, instance, meta, index
+    return input_image, box, label, instance, meta, index
 
 
 def valid_augment(image, multi_mask, meta, index):
 
     image,  multi_mask = fix_crop_transform(image, multi_mask, -1, -1, WIDTH, HEIGHT)
-    input = torch.from_numpy(image.transpose((2,0,1))).float().div(255)
+    input_image = torch.from_numpy(image.transpose((2,0,1))).float().div(255)
     box, label, instance  = multi_mask_to_annotation(multi_mask)
 
-    return input, box, label, instance, meta, index
+    return input_image, box, label, instance, meta, index
 
 
 def make_collate(batch):
@@ -79,7 +79,7 @@ def validate(net, test_loader):
             net(inputs, truth_boxes,  truth_labels, truth_instances)
             loss = net.loss()
 
-        # acc    = dice_loss(masks, labels) #todo
+        # acc = dice_loss(masks, labels) #todo
 
         batch_size = len(indices)
         test_acc  += 0  # batch_size*acc[0][0]

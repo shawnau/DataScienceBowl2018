@@ -1,11 +1,6 @@
 from common import *
 import configparser
 
-#
-# proposal i,x0,y0,x1,y1,score, label, (scale_level)
-# roi      i,x0,y0,x1,y1
-# box        x0,y0,x1,y1
-
 
 class Configuration(object):
 
@@ -24,7 +19,7 @@ class Configuration(object):
         # used to get stride of anchor boxes
         # e.g. 2 for p1, 4 for p2, 8 for p3, 16 for p4.
         # the smaller the feature map is, the bigger the anchor box will be
-        self.rpn_scales = [2,  4,  8, 16]
+        self.rpn_scales = [2, 4, 8, 16]
 
         aspect = lambda s,x: (s*1/x**0.5,s*x**0.5)
         # self.rpn_base_apsect_ratios = [
@@ -77,6 +72,10 @@ class Configuration(object):
         self.mask_test_nms_pre_score_threshold = 0.4
         self.mask_test_nms_overlap_threshold = 0.1
         self.mask_test_mask_threshold  = 0.5
+
+        # annotation
+        self.annotation_train_split = 'train1_ids_all_670'
+        self.annotation_test_split = 'test1_ids_all_65'
 
         # training --------------------------------------------------------------
         self.model_name = 'mask-rcnn-50-gray500-02'

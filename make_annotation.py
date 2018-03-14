@@ -1,10 +1,10 @@
 from dataset.annotate import multi_mask_to_color_overlay, multi_mask_to_contour_overlay
 from dataset.reader import *
+from configuration import Configuration
 
 
-def run_make_test_annotation(split):
-
-    ids = read_list_from_file(os.path.join(SPLIT_DIR, split), comment='#')
+def run_make_test_annotation(cfg):
+    ids = read_list_from_file(os.path.join(SPLIT_DIR, cfg.annotation_test_split), comment='#')
     data_dir = os.path.join(IMAGE_DIR, 'stage1_test')
     os.makedirs(data_dir, exist_ok=True)
     os.makedirs(os.path.join(data_dir, 'images'), exist_ok=True)
@@ -23,9 +23,8 @@ def run_make_test_annotation(split):
     print('run_make_test_annotation success!')
 
 
-def run_make_train_annotation(split):
-
-    ids = read_list_from_file(os.path.join(SPLIT_DIR, split), comment='#')
+def run_make_train_annotation(cfg):
+    ids = read_list_from_file(os.path.join(SPLIT_DIR, cfg.annotation_train_split), comment='#')
 
     data_dir = os.path.join(IMAGE_DIR, 'stage1_train')
     os.makedirs(data_dir, exist_ok=True)
@@ -73,8 +72,7 @@ def run_make_train_annotation(split):
 
 if __name__ == '__main__':
     print('%s: calling main function ... ' % os.path.basename(__file__))
-
-    run_make_train_annotation('train1_ids_all_670')
-    run_make_test_annotation('test1_ids_all_65')
-
+    cfg = Configuration()
+    run_make_train_annotation(cfg)
+    run_make_test_annotation(cfg)
     print('Done')
