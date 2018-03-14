@@ -19,8 +19,7 @@ def add_truth_box_to_proposal(cfg, proposal, b, truth_box, truth_label, score=-1
     return sampled_proposal
 
 
-# mask target ********************************************************************
-#<todo> mask crop should match align kernel (same wait to handle non-integer pixel location (e.g. 23.5, 32.1))
+# <todo> mask crop should match align kernel (same wait to handle non-integer pixel location (e.g. 23.5, 32.1))
 def crop_instance(instance, box, size, threshold=0.5):
     """
     :param instance: mask of (H, W) of input image
@@ -182,7 +181,4 @@ def make_mask_target(cfg, mode, inputs, proposals, truth_boxes, truth_labels, tr
 
     return sampled_proposals, sampled_labels, sampled_assigns, sampled_instances
 
-
-if __name__ == '__main__':
-    print('%s: calling main function ... ' % os.path.basename(__file__))
 

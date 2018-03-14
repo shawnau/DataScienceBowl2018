@@ -25,8 +25,6 @@ def add_truth_box_to_proposal(cfg, proposal, b, truth_box, truth_label, score=-1
     return sampled_proposal
 
 
-
-
 # gpu version
 ## see https://github.com/ruotianluo/pytorch-faster-rcnn
 def make_one_rcnn_target(cfg, input, proposal, truth_box, truth_label):
@@ -76,7 +74,7 @@ def make_one_rcnn_target(cfg, input, proposal, truth_box, truth_label):
     # https://github.com/precedenceguo/mx-rcnn/commit/3853477d9155c1f340241c04de148166d146901d
     fg_length = len(fg_index)
     bg_length = len(bg_index)
-    #print(fg_inds_length)
+    # print(fg_inds_length)
 
     if fg_length > 0 and bg_length > 0:
         num_fg = min(num_fg, fg_length)
@@ -116,12 +114,12 @@ def make_one_rcnn_target(cfg, input, proposal, truth_box, truth_label):
     index = np.concatenate([fg_index, bg_index], 0)
     sampled_proposal = proposal[index]
 
-    #label
+    # label
     sampled_assign = argmax_overlap[index]
     sampled_label  = truth_label[sampled_assign]
     sampled_label[num_fg:] = 0   # Clamp labels for the background to 0
 
-    #target
+    # target
     if num_fg>0:
         target_truth_box = truth_box[sampled_assign[:num_fg]]
         target_box       = sampled_proposal[:num_fg][:,1:5]
@@ -138,7 +136,7 @@ def make_rcnn_target(cfg, mode, inputs, proposals, truth_boxes, truth_labels):
     """
     a sampled subset of proposals, with it's corresponding truth label and offsets
     """
-    #<todo> take care of don't care ground truth. Here, we only ignore them  ----
+    # <todo> take care of don't care ground truth. Here, we only ignore them  ----
     truth_boxes     = copy.deepcopy(truth_boxes)
     truth_labels    = copy.deepcopy(truth_labels)
     batch_size = len(inputs)
@@ -146,8 +144,7 @@ def make_rcnn_target(cfg, mode, inputs, proposals, truth_boxes, truth_labels):
         index = np.where(truth_labels[b]>0)[0]
         truth_boxes [b] = truth_boxes [b][index]
         truth_labels[b] = truth_labels[b][index]
-    #----------------------------------------------------------------------------
-
+    # ----------------------------------------------------------------------------
 
     proposals = proposals.cpu().data.numpy()
     sampled_proposals = []
@@ -186,13 +183,3 @@ def make_rcnn_target(cfg, mode, inputs, proposals, truth_boxes, truth_labels):
     sampled_assigns   = np.hstack(sampled_assigns)
 
     return sampled_proposals, sampled_labels, sampled_assigns, sampled_targets
-
-
-#-----------------------------------------------------------------------------  
-if __name__ == '__main__':
-    print( '%s: calling main function ... ' % os.path.basename(__file__))
-
-    check_layer()
-
- 
- 

@@ -27,7 +27,8 @@ def open(file, mode=None, encoding=None):
 
 
 def remove(file):
-    if os.path.exists(file): os.remove(file)
+    if os.path.exists(file):
+        os.remove(file)
 
 
 def empty(dir):
@@ -90,7 +91,8 @@ def read_list_from_file(list_file, comment='#', func=None):
 
 # backup ------------------------------------
 
-#https://stackoverflow.com/questions/1855095/how-to-create-a-zip-archive-of-a-directory
+
+# https://stackoverflow.com/questions/1855095/how-to-create-a-zip-archive-of-a-directory
 def backup_project_as_zip(project_dir, zip_file):
     assert(os.path.isdir(project_dir))
     assert(os.path.isdir(os.path.dirname(zip_file)))

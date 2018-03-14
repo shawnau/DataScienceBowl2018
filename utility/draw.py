@@ -19,8 +19,7 @@ def draw_shadow_text(img, text, pt,  fontScale, color, thickness, color1=None, t
     cv2.putText(img, text, pt, font, fontScale, color,  thickness,  cv2.LINE_AA)
 
 
-
-##http://stackoverflow.com/questions/26690932/opencv-rectangle-with-dotted-or-dashed-lines
+# http://stackoverflow.com/questions/26690932/opencv-rectangle-with-dotted-or-dashed-lines
 def draw_dotted_line(image, pt1, pt2, color, thickness=1, gap=20):
 
     dist =((pt1[0]-pt2[0])**2+(pt1[1]-pt2[1])**2)**.5
@@ -59,36 +58,11 @@ def draw_dotted_rect(image, pt1, pt2, color, thickness=1, gap=3):
     pts = [pt1,(pt2[0],pt1[1]),pt2,(pt1[0],pt2[1])]
     draw_dotted_poly(image, pts, color, thickness, gap)
 
+
 def draw_screen_rect(image, pt1, pt2, color, alpha=0.5):
     x1, y1 = pt1
     x2, y2 = pt2
     image[y1:y2,x1:x2,:] = (1-alpha)*image[y1:y2,x1:x2,:] + (alpha)*np.array(color, np.uint8)
-
-
-
-# def draw_mask(image, mask, color=(255,255,255), α=1,  β=0.25, λ=0., threshold=32 ):
-#     # image * α + mask * β + λ
-#
-#     if threshold is None:
-#         mask = mask/255
-#     else:
-#         mask = clean_mask(mask,threshold,1)
-#
-#     mask  = np.dstack((color[0]*mask,color[1]*mask,color[2]*mask)).astype(np.uint8)
-#     image[...] = cv2.addWeighted(image, α, mask, β, λ)
-#
-
-
-# def draw_contour(image, mask, color=(0,255,0), thickness=1, threshold=127):
-#     ret, thresh = cv2.threshold(mask,threshold,255,0)
-#     ret = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
-#     hierarchy = ret[0]
-#     contours  = ret[1]
-#     #image[...]=image
-#     cv2.drawContours(image, contours, -1, color, thickness, cv2.LINE_AA)
-#     ## drawContours(image, contours, contourIdx, color, thickness=None, lineType=None, hierarchy=None, maxLevel=None, offset=None): # real signature unknown; restored from __doc__
-#
-#
 
 
 def to_color(s, color=None):
@@ -110,11 +84,8 @@ def to_color(s, color=None):
     return b,g,r
 
 
-
-# main #################################################################
 if __name__ == '__main__':
     print( '%s: calling main function ... ' % os.path.basename(__file__))
-
 
     image = np.zeros((50,50,3), np.uint8)
     cv2.rectangle(image, (0,0),(49,49), (0,0,255),1) #inclusive

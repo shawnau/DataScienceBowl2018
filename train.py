@@ -1,22 +1,15 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'  #'3,2' #'3,2,1,0'
 
-from common import *
-from utility.file import *
+from utility.file import Logger
+from dataset.transform import *
 from dataset.reader import *
 from net.scheduler import *
-from net.metric import *
-
-
-# -------------------------------------------------------------------------------------
-#WIDTH, HEIGHT = 128,128
-#WIDTH, HEIGHT = 192,192
-WIDTH, HEIGHT = 256,256
-
-from net.resnet50_mask_rcnn.configuration import Configuration
-from net.resnet50_mask_rcnn.draw import *
 from net.resnet50_mask_rcnn.model import *
-# -------------------------------------------------------------------------------------
+from net.resnet50_mask_rcnn.configuration import Configuration
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'  #'3,2' #'3,2,1,0'
+
+
+WIDTH, HEIGHT = 256, 256
 
 
 class TrainFolder:
@@ -44,17 +37,10 @@ def train_augment(image, multi_mask, meta, index):
             borderMode=cv2.BORDER_REFLECT_101,
             u=0.5) #borderMode=cv2.BORDER_CONSTANT
 
-    # overlay = multi_mask_to_color_overlay(multi_mask,color='cool')
-    # overlay1 = multi_mask_to_color_overlay(multi_mask1,color='cool')
-    # image_show('overlay',overlay)
-    # image_show('overlay1',overlay1)
-    # cv2.waitKey(0)
-
     image, multi_mask = random_crop_transform(image, multi_mask, WIDTH, HEIGHT, u=0.5)
     image, multi_mask = random_horizontal_flip_transform(image, multi_mask, 0.5)
     image, multi_mask = random_vertical_flip_transform(image, multi_mask, 0.5)
     image, multi_mask = random_rotate90_transform(image, multi_mask, 0.5)
-    ##image,  multi_mask = fix_crop_transform2(image, multi_mask, -1,-1,WIDTH, HEIGHT)
 
     input = torch.from_numpy(image.transpose((2,0,1))).float().div(255)
     box, label, instance = multi_mask_to_annotation(multi_mask)
@@ -74,7 +60,6 @@ def valid_augment(image, multi_mask, meta, index):
 def make_collate(batch):
 
     batch_size = len(batch)
-    #for b in range(batch_size): print (batch[b][0].size())
     inputs    = torch.stack([batch[b][0]for b in range(batch_size)], 0)
     boxes     =             [batch[b][1]for b in range(batch_size)]
     labels    =             [batch[b][2]for b in range(batch_size)]
@@ -85,7 +70,7 @@ def make_collate(batch):
     return [inputs, boxes, labels, instances, metas, indices]
 
 
-def evaluate(net, test_loader):
+def validate(net, test_loader):
 
     test_num  = 0
     test_loss = np.zeros(6, np.float32)
@@ -94,13 +79,13 @@ def evaluate(net, test_loader):
 
         with torch.no_grad():
             inputs = Variable(inputs).cuda()
-            net(inputs, truth_boxes,  truth_labels, truth_instances )
-            loss = net.loss(inputs, truth_boxes,  truth_labels, truth_instances)
+            net(inputs, truth_boxes,  truth_labels, truth_instances)
+            loss = net.loss()
 
         # acc    = dice_loss(masks, labels) #todo
 
         batch_size = len(indices)
-        test_acc  += 0 # batch_size*acc[0][0]
+        test_acc  += 0  # batch_size*acc[0][0]
         test_loss += batch_size*np.array((
                            loss.cpu().data.numpy(),
                            net.rpn_cls_loss.cpu().data.numpy(),
@@ -154,15 +139,14 @@ def run_train(model_name, train_split, valid_split, checkpoint=None, pretrain_fi
     log.write('%s\n' % net.version)
     log.write('\n')
 
-    # optimiser
+    # optimiser -------------------------------------------------
     iter_accum  = 1
     batch_size  = 16
 
     num_iters   = 1000*1000
-    iter_smooth = 20
-    iter_log    = 50
+    iter_smooth = 20  # calculate smoothed loss over each 20 iter
     iter_valid  = 100
-    iter_save   = [0, num_iters-1] + list(range(0, num_iters, 500))  # 1*1000
+    iter_save   = list(range(0, num_iters, 500)) + [num_iters]
 
     LR = None  #LR = StepLR([ (0, 0.01),  (200, 0.001),  (300, -1)])
     optimizer = optim.SGD(filter(lambda p: p.requires_grad, net.parameters()),
@@ -184,26 +168,25 @@ def run_train(model_name, train_split, valid_split, checkpoint=None, pretrain_fi
 
     # dataset -------------------------------------------------
     log.write('** dataset setting **\n')
-
     train_dataset = ScienceDataset(train_split, mode='train', transform=train_augment)
     train_loader  = DataLoader(
                         train_dataset,
-                        sampler     = RandomSampler(train_dataset),
-                        batch_size  = batch_size,
-                        drop_last   = True,
-                        num_workers = 4,
-                        pin_memory  = True,
-                        collate_fn  = make_collate)
+                        sampler=RandomSampler(train_dataset),
+                        batch_size=batch_size,
+                        drop_last=True,
+                        num_workers=4,
+                        pin_memory=True,
+                        collate_fn=make_collate)
 
     valid_dataset = ScienceDataset(valid_split, mode='train', transform=valid_augment)
     valid_loader  = DataLoader(
                         valid_dataset,
-                        sampler     = SequentialSampler(valid_dataset),
-                        batch_size  = batch_size,
-                        drop_last   = False,
-                        num_workers = 4,
-                        pin_memory  = True,
-                        collate_fn  = make_collate)
+                        sampler=SequentialSampler(valid_dataset),
+                        batch_size=batch_size,
+                        drop_last=False,
+                        num_workers=4,
+                        pin_memory=True,
+                        collate_fn=make_collate)
 
     log.write('\tWIDTH, HEIGHT = %d, %d\n' % (WIDTH, HEIGHT))
     log.write('\ttrain_dataset.split = %s\n' % train_dataset.split)
@@ -236,8 +219,8 @@ def run_train(model_name, train_split, valid_split, checkpoint=None, pretrain_fi
     rate = 0
 
     start = timer()
-    j = 0
-    i = 0
+    j = 0  # accum counter
+    i = 0  # iter  counter
 
     while i < num_iters:  # loop over the dataset multiple times
         sum_train_loss = np.zeros(6,np.float32)
@@ -249,15 +232,14 @@ def run_train(model_name, train_split, valid_split, checkpoint=None, pretrain_fi
         for inputs, truth_boxes, truth_labels, truth_instances, metas, indices in train_loader:
             if all(len(b) == 0 for b in truth_boxes):
                 continue
-
             batch_size = len(indices)
             i = j/iter_accum + start_iter
             epoch = (i-start_iter)*batch_size*iter_accum/len(train_dataset) + start_epoch
             num_products = epoch*len(train_dataset)
-
+            # validate iter
             if i % iter_valid == 0:
                 net.set_mode('valid')
-                valid_loss, valid_acc = evaluate(net, valid_loader)
+                valid_loss, valid_acc = validate(net, valid_loader)
                 net.set_mode('train')
 
                 print('\r', end='', flush=True)
@@ -268,7 +250,7 @@ def run_train(model_name, train_split, valid_split, checkpoint=None, pretrain_fi
                          batch_loss[0], batch_loss[1], batch_loss[2], batch_loss[3], batch_loss[4], batch_loss[5],#batch_acc,
                          time_to_str((timer() - start)/60)))
                 time.sleep(0.01)
-
+            # save checkpoint
             if i in iter_save:
                 model_config_path = os.path.join(f.checkpoint, 'configuration.pkl')
                 model_path = os.path.join(f.checkpoint, '%08d_model.pth'%i)
@@ -328,7 +310,7 @@ def run_train(model_name, train_split, valid_split, checkpoint=None, pretrain_fi
                          valid_loss[0], valid_loss[1], valid_loss[2], valid_loss[3], valid_loss[4], valid_loss[5], # valid_acc,
                          train_loss[0], train_loss[1], train_loss[2], train_loss[3], train_loss[4], train_loss[5], # train_acc,
                          batch_loss[0], batch_loss[1], batch_loss[2], batch_loss[3], batch_loss[4], batch_loss[5], # batch_acc,
-                         time_to_str((timer() - start)/60) ,i,j, ''), end='', flush=True)#str(inputs.size()))
+                         time_to_str((timer() - start)/60), i, j, ''), end='', flush=True)#str(inputs.size()))
             j = j+1
         pass  # end of one data loader
     pass  # end of all iterations

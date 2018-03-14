@@ -1,6 +1,4 @@
-from common import *
-from utility.file import *
-from utility.draw import *
+from dataset.annotate import multi_mask_to_color_overlay, multi_mask_to_contour_overlay
 from dataset.reader import *
 
 
@@ -20,7 +18,7 @@ def run_make_test_annotation(split):
 
         # show and save into image folder
         cv2.imwrite(os.path.join(data_dir, 'images/%s.png' % name), image)
-        print('dump: ', i)
+        print('\rannotate: ', i)
 
     print('run_make_test_annotation success!')
 
@@ -45,19 +43,19 @@ def run_make_train_annotation(split):
         assert(len(image_files) == 1)
         image_file = image_files[0]
 
-        #image
+        # image
         image = cv2.imread(image_file, cv2.IMREAD_COLOR)
         H, W, C = image.shape
         multi_mask = np.zeros((H, W), np.int32)
 
         mask_files = glob.glob(os.path.join(DOWNLOAD_DIR, '%s/%s/masks/*.png' % (folder, name)))
         mask_files.sort()
-        for i in range(len(mask_files)):
-            mask_file = mask_files[i]
+        for j in range(len(mask_files)):
+            mask_file = mask_files[j]
             mask = cv2.imread(mask_file, cv2.IMREAD_GRAYSCALE)
-            multi_mask[np.where(mask > 128)] = i+1
+            multi_mask[np.where(mask > 128)] = j+1
 
-        #check
+        # check
         color_overlay   = multi_mask_to_color_overlay  (multi_mask, color='summer')
         color1_overlay  = multi_mask_to_contour_overlay(multi_mask, color_overlay, [255,255,255])
         contour_overlay = multi_mask_to_contour_overlay(multi_mask, image, [0,255,0])
@@ -68,7 +66,7 @@ def run_make_train_annotation(split):
         cv2.imwrite(os.path.join(data_dir, 'multi_masks', '%s.png' % name), color_overlay)
         np.save(    os.path.join(data_dir, 'multi_masks', '%s.npy' % name), multi_mask)
         cv2.imwrite(os.path.join(data_dir, 'overlays', '%s.png' % name), all)
-        print('dump: ', i)
+        print('\rannotate: ', i)
 
     print('run_make_train_annotation success!')
 

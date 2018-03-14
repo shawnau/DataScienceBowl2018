@@ -32,6 +32,7 @@ def prob_delta_to_candidates( prob, delta, heads, threshold=0.4):
     candidates = np.concatenate(candidates)
     return candidates
 
+
 # https://www.pyimagesearch.com/2015/02/16/faster-non-maximum-suppression-python/
 def non_max_suppress(candidates, min_distance_threshold=0.25):
 
@@ -62,6 +63,7 @@ def non_max_suppress(candidates, min_distance_threshold=0.25):
 
     nms = candidates[select]
     return nms
+
 
 def nms_to_original_size( nms, image, original_image):
     h,w = image.shape[:2]
@@ -96,3 +98,44 @@ def nms_to_label( nms, image ):
     label = label[:,:,1]*256 + label[:,:,2]
 
     return label
+
+
+# # overlaps
+# #https://stackoverflow.com/questions/25349178/calculating-percentage-of-bounding-box-overlap-for-image-detector-evaluation
+# #http://www.pyimagesearch.com/2016/11/07/intersection-over-union-iou-for-object-detection/
+#
+# def one_box_overlap(box1,box2):
+#
+#     ''' Calculate the Intersection over Union (IoU) of two bounding boxes.
+#
+#     '''
+#     #box=x0,y0,x1,y1
+#     assert box1[0] < box1[2]
+#     assert box1[1] < box1[3]
+#     assert box2[0] < box2[2]
+#     assert box2[1] < box2[3]
+#
+#     # determine the coordinates of the intersection rectangle
+#     x_left   = max(box1[0], box2[0])
+#     y_top    = max(box1[1], box2[1])
+#     x_right  = min(box1[2], box2[2])
+#     y_bottom = min(box1[3], box2[3])
+#
+#     if x_right < x_left or y_bottom < y_top:
+#         return 0.0
+#
+#     # The intersection of two axis-aligned bounding boxes is always an
+#     # axis-aligned bounding box
+#     intersection_area = (x_right - x_left+1) * (y_bottom - y_top+1)
+#
+#     # compute the area of both AABBs
+#     area1 = (box1[2] - box1[0]+1) * (box1[3] - box1[1]+1)
+#     area2 = (box2[2] - box2[0]+1) * (box2[3] - box2[1]+1)
+#
+#     # compute the intersection over union by taking the intersection
+#     # area and dividing it by the sum of prediction + ground-truth
+#     # areas - the interesection area
+#     iou = intersection_area / float(area1 + area2 - intersection_area)
+#     assert iou >= 0.0
+#     assert iou <= 1.0
+#     return iou

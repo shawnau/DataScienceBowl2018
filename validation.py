@@ -1,6 +1,11 @@
 import os, sys
+
+from dataset.annotate import *
+from net.metric import *
+from net.resnet50_mask_rcnn.draw import *
+
 sys.path.append(os.path.dirname(__file__))
-from train_0 import *
+from train import *
 
 
 # overwrite functions
@@ -34,7 +39,7 @@ def revert(net, images):
 
         # mask --
         # net.mask_logits
-        index = (net.detections[:,0] == b).nonzero().view(-1)
+        index = (net.detections[:, 0] == b).nonzero().view(-1)
         net.detections = torch_clip_proposals(net.detections, index, width, height)
         net.masks[b] = net.masks[b][:height, :width]
 
@@ -65,26 +70,23 @@ def eval_collate(batch):
     return [inputs, boxes, labels, instances, metas, images, indices]
 
 
-def run_evaluate():
+def run_evaluate(model, checkpoint, valid_split):
 
-    out_dir = RESULTS_DIR + '/mask-rcnn-50-gray500-02'
-    initial_checkpoint = \
-        RESULTS_DIR + '/mask-rcnn-50-gray500-02/checkpoint/00016500_model.pth'
+    work_dir = os.path.join(RESULTS_DIR, model)
+    initial_checkpoint = os.path.join(RESULTS_DIR, model, 'checkpoint', checkpoint)
 
-    ## setup  ---------------------------
-    os.makedirs(out_dir +'/evaluate/overlays', exist_ok=True)
-    os.makedirs(out_dir +'/evaluate/npys', exist_ok=True)
-    os.makedirs(out_dir +'/checkpoint', exist_ok=True)
-    os.makedirs(out_dir +'/backup', exist_ok=True)
-    backup_project_as_zip(PROJECT_PATH, out_dir +'/backup/code.%s.zip'%IDENTIFIER)
+    os.makedirs(os.path.join(work_dir, 'evaluate', 'overlays'), exist_ok=True)
+    os.makedirs(os.path.join(work_dir, 'evaluate', 'npys'), exist_ok=True)
+    os.makedirs(os.path.join(work_dir, 'checkpoint'), exist_ok=True)
+    os.makedirs(os.path.join(work_dir, 'backup'), exist_ok=True)
 
     log = Logger()
-    log.open(out_dir+'/log.evaluate.txt',mode='a')
+    log.open(work_dir+'/log.evaluate.txt',mode='a')
     log.write('\n--- [START %s] %s\n\n' % (IDENTIFIER, '-' * 64))
     log.write('** some experiment setting **\n')
     log.write('\tSEED         = %u\n' % SEED)
     log.write('\tPROJECT_PATH = %s\n' % PROJECT_PATH)
-    log.write('\tout_dir      = %s\n' % out_dir)
+    log.write('\tout_dir      = %s\n' % work_dir)
     log.write('\n')
 
     # net ------------------------------
@@ -97,18 +99,14 @@ def run_evaluate():
         log.write('\tinitial_checkpoint = %s\n' % initial_checkpoint)
         net.load_state_dict(torch.load(initial_checkpoint, map_location=lambda storage, loc: storage))
 
-
     log.write('%s\n\n'%(type(net)))
     log.write('\n')
 
     # dataset ----------------------------------------
     log.write('** dataset setting **\n')
 
-    test_dataset = ScienceDataset(
-                                #'train1_ids_gray2_500', mode='train',
-                                'valid1_ids_gray2_43', mode='train',
-                                #'debug1_ids_gray2_10', mode='train',
-                                transform = eval_augment)
+    test_dataset = ScienceDataset(valid_split, mode='train',
+                                  transform = eval_augment)
     test_loader  = DataLoader(
                         test_dataset,
                         sampler = SequentialSampler(test_dataset),
@@ -132,18 +130,16 @@ def run_evaluate():
     test_loss = np.zeros(5,np.float32)
     test_acc  = 0
     for i, (inputs, truth_boxes, truth_labels, truth_instances, metas, images, indices) in enumerate(test_loader, 0):
-        if all((truth_label>0).sum()==0 for truth_label in truth_labels): continue
+        if all((truth_label > 0).sum() == 0 for truth_label in truth_labels):
+            continue
 
         net.set_mode('test')
         with torch.no_grad():
             inputs = Variable(inputs).cuda()
-            net(inputs, truth_boxes,  truth_labels, truth_instances )
-            #loss = net.loss(inputs, truth_boxes,  truth_labels, truth_instances)
+            net(inputs, truth_boxes,  truth_labels, truth_instances)
 
-
-        ##save results ---------------------------------------
+        # save results ---------------------------------------
         revert(net, images)
-
 
         batch_size = len(indices)
         assert(batch_size==1)  #note current version support batch_size==1 for variable size input
@@ -159,9 +155,7 @@ def run_evaluate():
         masks      = net.masks
         detections = net.detections.cpu().numpy()
 
-
         for b in range(batch_size):
-            #image0 = (inputs[b].transpose((1,2,0))*255).astype(np.uint8)
             image  = images[b]
             height,width  = image.shape[:2]
             mask = masks[b]
@@ -170,12 +164,10 @@ def run_evaluate():
             detection = detections[index]
             box = detection[:,1:5]
 
-
             truth_mask = instance_to_multi_mask(truth_instances[b])
             truth_box  = truth_boxes[b]
             truth_label= truth_labels[b]
             truth_instance= truth_instances[b]
-
 
             mask_average_precision, mask_precision =\
                 compute_average_precision_for_mask(mask, truth_mask, t_range=np.arange(0.5, 1.0, 0.05))
@@ -196,18 +188,19 @@ def run_evaluate():
             contour_overlay  = multi_mask_to_contour_overlay(mask, image, color=[0,255,0])
             color_overlay    = multi_mask_to_color_overlay(mask, color='summer')
             color1_overlay   = multi_mask_to_contour_overlay(mask, color_overlay, color=[255,255,255])
-            all1 = np.hstack((image,contour_overlay,color1_overlay))
+            all1 = np.hstack((image, contour_overlay, color1_overlay))
 
             all6 = draw_multi_proposal_metric(cfg, image, detection, truth_box, truth_label,[0,255,255],[255,0,255],[255,255,0])
             all7 = draw_mask_metric(cfg, image, mask, truth_box, truth_label, truth_instance)
 
+            cv2.imwrite(os.path.join(work_dir, 'evaluate', 'overlays', '%s.png' % id), color1_overlay)
             #image_show('overlay_mask',overlay_mask)
             #image_show('overlay_truth',overlay_truth)
             #image_show('overlay_error',overlay_error)
-            image_show('all1',all1)
-            image_show('all6',all6)
-            image_show('all7',all7)
-            cv2.waitKey(0)
+            #image_show('all1',all1)
+            #image_show('all6',all6)
+            #image_show('all7',all7)
+            #cv2.waitKey(0)
 
         # print statistics  ------------
         test_acc  += 0 #batch_size*acc[0][0]
@@ -312,5 +305,7 @@ def run_evaluate():
 
 if __name__ == '__main__':
     print( '%s: calling main function ... ' % os.path.basename(__file__))
-    run_evaluate()
+    run_evaluate(model='mask-rcnn-50-gray500-02',
+                 checkpoint='0004600_model.pth',
+                 valid_split='test1_ids_gray2_53')
     print('\nsucess!')

@@ -10,13 +10,16 @@ def dummy_transform(image):
 # kaggle science bowl-2
 # geometric ---
 def pad_to_factor(image, factor=16):
-    height,width = image.shape[:2]
+    height, width = image.shape[:2]
     h = math.ceil(height/factor)*factor
     w = math.ceil(width/factor)*factor
 
-    image = cv2.copyMakeBorder(image, top=0, bottom=h-height, left=0, right=w-width,
-                               borderType= cv2.BORDER_REFLECT101, value=[0,0,0] )
-
+    image = cv2.copyMakeBorder(image,
+                               top=0,
+                               bottom=h-height,
+                               left=0, right=w-width,
+                               borderType=cv2.BORDER_REFLECT101,
+                               value=[0,0,0])
     return image
 
 
@@ -39,7 +42,6 @@ def fix_resize_transform(image, mask, w, h):
 
 
 def fix_crop_transform(image, mask, x, y, w, h):
-
     H,W = image.shape[:2]
     assert(H>=h)
     assert(W >=w)
@@ -237,9 +239,3 @@ def random_noise_transform(image, limit=[0, 0.5], u=0.5):
         image = np.clip(image, 0, 255).astype(np.uint8)
 
     return image
-
-
-if __name__ == '__main__':
-    print( '%s: calling main function ... ' % os.path.basename(__file__))
-
-    print('\nsucess!')

@@ -79,8 +79,6 @@ class DecayLR():
         lr = self.base_lr * (self.decay**(epoch // self.step))
         return lr
 
-
-
     def __str__(self):
         string = '(Exp) Decay Learning Rates\n' \
                 + 'base_lr=%0.3f, decay=%0.3f, step=%0.3f'%(self.base_lr, self.decay, self.step)
@@ -151,7 +149,7 @@ class CyclicLR():
 
     def __str__(self):
         string = 'Cyclical Learning Rates\n' \
-                + 'base_lr=%0.3f, max_lr=%0.3f'%(self.base_lr, self.max_lr)
+                + 'base_lr=%0.4f, max_lr=%0.4f'%(self.base_lr, self.max_lr)
         return string
 
 
@@ -160,6 +158,7 @@ class CyclicLR():
 def adjust_learning_rate(optimizer, lr):
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
+
 
 def get_learning_rate(optimizer):
     lr=[]
@@ -178,8 +177,8 @@ if __name__ == '__main__':
     num_epoches=50
     num_its=420
 
-    #LR = StepLR([ (0,0.1),  (10,0.01),  (25,0.005),  (35,0.001), (40,0.0001), (43,-1)])
-    #LR = DecayLR (base_lr=0.1, decay=0.32, step=10)
+    LR = StepLR([ (0,0.1),  (10,0.01),  (25,0.005),  (35,0.001), (40,0.0001), (43,-1)])
+    LR = DecayLR (base_lr=0.1, decay=0.32, step=10)
     LR = CyclicLR(base_lr=0.0001, max_lr=0.01, step=5., mode='triangular2', gamma=1., scale_fn=None, scale_mode='cycle') ##exp_range ##triangular2
 
     lrs = np.zeros((num_epoches),np.float32)

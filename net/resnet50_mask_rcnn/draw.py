@@ -1,6 +1,5 @@
-from common import *
+from dataset.annotate import multi_mask_to_contour_overlay, instance_to_multi_mask
 from net.metric import *
-from dataset.reader import *
 
 if __name__ == '__main__':
     from .configuration import *
@@ -15,8 +14,58 @@ else:
     from .layer.rpn_multi_target import *
     from .layer.rpn_multi_loss   import *
 
+# rpn-------------------------------------------
+def unflat_to_c3(data, num_bases, scales, H, W):
+    dtype =data.dtype
+    data=data.astype(np.float32)
+
+    datas=[]
+
+    num_scales = len(scales)
+    start = 0
+    for l in range(num_scales):
+        h,w = int(H/scales[l]), int(W/scales[l])
+        c = num_bases[l]
+
+        size = h*w*c
+        d = data[start:start+size].reshape(h,w,c)
+        start = start+size
+
+        if c==1:
+            d = d*np.array([1,1,1])
+
+        elif c==3:
+            pass
+
+        elif c==4:
+            d = np.dstack((
+                (d[:,:,0]+d[:,:,1])/2,
+                 d[:,:,2],
+                 d[:,:,3],
+            ))
+
+        elif c==5:
+            d = np.dstack((
+                 d[:,:,0],
+                (d[:,:,1]+d[:,:,2])/2,
+                (d[:,:,3]+d[:,:,4])/2,
+            ))
 
 
+        elif c==6:
+            d = np.dstack((
+                (d[:,:,0]+d[:,:,1])/2,
+                (d[:,:,2]+d[:,:,3])/2,
+                (d[:,:,4]+d[:,:,5])/2,
+            ))
+
+        else:
+            raise NotImplementedError
+
+        d = d.astype(dtype)
+        datas.append(d)
+
+    return datas
 
 
 def draw_multi_rpn_prob(cfg, image, rpn_prob_flat):
@@ -49,7 +98,6 @@ def draw_multi_rpn_prob(cfg, image, rpn_prob_flat):
     draw_shadow_text(all,'rpn-prob', (5,15),0.5, (255,255,255), 1)
 
     return all
-
 
 
 def draw_multi_rpn_delta(cfg, image, rpn_prob_flat, rpn_delta_flat, window, color=[255,255,255]):
@@ -97,7 +145,6 @@ def draw_multi_rpn_proposal(cfg, image, proposal):
     return image
 
 
-
 #yellow
 def draw_truth_box(cfg, image, truth_box, truth_label):
 
@@ -107,6 +154,103 @@ def draw_truth_box(cfg, image, truth_box, truth_label):
             x0,y0,x1,y1 = b.astype(np.int32)
             if l <=0 : continue
             cv2.rectangle(image, (x0,y0), (x1,y1), [0,255,255], 1)
+
+    return image
+
+
+def normalize(data):
+    data = (data-data.min())/(data.max()-data.min())
+    return data
+
+
+def draw_rpn_target_truth_box(image, truth_box, truth_label):
+    image = image.copy()
+    for b,l in zip(truth_box, truth_label):
+        x0,y0,x1,y1 = np.round(b).astype(np.int32)
+        if l >0:
+            cv2.rectangle(image,(x0,y0), (x1,y1), (0,0,255), 1)
+        else:
+            cv2.rectangle(image,(x0,y0), (x1,y1), (255,255,255), 1)
+            # draw_dotted_rect(image,(x0,y0), (x1,y1), (0,0,255), )
+
+    return image
+
+
+def draw_rpn_target_label(cfg, image, window, label, label_assign, label_weight):
+
+    H,W = image.shape[:2]
+    scales = cfg.rpn_scales
+    num_scales = len(cfg.rpn_scales)
+    num_bases  = [len(b) for b in cfg.rpn_base_apsect_ratios]
+
+    label         = (normalize(label       )*255).astype(np.uint8)
+    label_assign  = (normalize(label_assign)*255).astype(np.uint8)
+    label_weight  = (normalize(label_weight)*255).astype(np.uint8)
+    labels        = unflat_to_c3(label       , num_bases, scales, H, W)
+    label_assigns = unflat_to_c3(label_assign, num_bases, scales, H, W)
+    label_weights = unflat_to_c3(label_weight, num_bases, scales, H, W)
+
+    all_label = []
+    for l in range(num_scales):
+        pyramid = cv2.resize(image, None, fx=1/scales[l],fy=1/scales[l])
+
+        a = np.vstack((
+            pyramid,
+            labels[l],
+            label_assigns[l],
+            label_weights[l],
+        ))
+
+        a = cv2.resize(a, None, fx=scales[l],fy=scales[l],interpolation=cv2.INTER_NEAREST)
+        all_label.append(a)
+
+    all_label = np.hstack(all_label)
+    return all_label
+
+
+def draw_rpn_target_target(cfg, image, window, target, target_weight):
+
+    H,W = image.shape[:2]
+    scales = cfg.rpn_scales
+    num_scales = len(cfg.rpn_scales)
+    num_bases  = [len(b) for b in cfg.rpn_base_apsect_ratios]
+
+    target_weight  = (normalize(target_weight)*255).astype(np.uint8)
+    target_weights = unflat_to_c3(target_weight, num_bases, scales, H, W)
+
+    all=[]
+    for l in range(num_scales):
+        pyramid = cv2.resize(image, None, fx=1/scales[l],fy=1/scales[l])
+
+        a = np.vstack((
+            pyramid,
+            target_weights[l],
+        ))
+
+        a = cv2.resize(a, None, fx=scales[l],fy=scales[l],interpolation=cv2.INTER_NEAREST)
+        all.append(a)
+
+    all = np.hstack(all)
+    return all
+
+
+def draw_rpn_target_target1(cfg, image, window, target, target_weight, is_before=False, is_after=True):
+
+    image = image.copy()
+
+    index = np.where(target_weight!=0)[0]
+    for i in index:
+        w = window[i]
+        t = target[i]
+        b = rpn_decode(w.reshape(1,4), t.reshape(1,4))
+        b = b.reshape(-1).astype(np.int32)
+
+        if is_before:
+            cv2.rectangle(image,(w[0], w[1]), (w[2], w[3]), (0,0,255), 1)
+            #cv2.circle(image,((w[0]+w[2])//2, (w[1]+w[3])//2),2, (0,0,255), -1, cv2.LINE_AA)
+
+        if is_after:
+            cv2.rectangle(image,(b[0], b[1]), (b[2], b[3]), (0,255,255), 1)
 
     return image
 

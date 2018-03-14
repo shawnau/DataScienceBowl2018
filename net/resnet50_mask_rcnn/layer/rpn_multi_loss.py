@@ -50,7 +50,7 @@ def weighted_focal_loss_for_cross_entropy(logits, labels, weights, gamma=2.):
     return loss.sum()
 
 
-##  http://geek.csdn.net/news/detail/126833
+# http://geek.csdn.net/news/detail/126833
 def weighted_binary_cross_entropy_with_logits(logits, labels, weights):
 
     loss = logits.clamp(min=0) - logits*labels + torch.log(1 + torch.exp(-logits.abs()))
@@ -97,15 +97,13 @@ def weighted_smooth_l1( predicts, targets, weights, sigma=3.0):
     return loss
 
 
-#unitbox loss
+# unitbox loss
 # https://github.com/zhimingluo/UnitBox_TF/blob/master/UnitBox.py
 # https://github.com/zhimingluo/UnitBox_TF/blob/master/IOULoss.py
 #
 # https://arxiv.org/abs/1608.01471
 #  "UnitBox: An Advanced Object Detection Network"
 def weighted_iou_loss( predicts, targets, weights):
-
-
     (bx0, by0, bx1, by1) = torch.split(predicts,  1, 1)
     (tx0, ty0, tx1, ty1) = torch.split(targets,   1, 1)
 
@@ -180,15 +178,4 @@ def rpn_loss(logits, deltas, labels, label_weights, targets, target_weights,  de
     rpn_reg_loss = weighted_smooth_l1( deltas, targets, target_weights, delta_sigma)
     #rpn_reg_loss = weighted_iou_loss( deltas, targets, target_weights)
 
-
     return rpn_cls_loss, rpn_reg_loss
-
-
-#-----------------------------------------------------------------------------  
-if __name__ == '__main__':
-    print( '%s: calling main function ... ' % os.path.basename(__file__))
-
-    #check_layer()
-
- 
- 

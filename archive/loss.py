@@ -234,8 +234,54 @@ def multi_loss(logits, labels):
 #     focal_loss = FocalLoss(gamma = 2)
 #     loss = focal_loss(logits, labels)
 #     print (loss)
+
+
+# ##  https://discuss.pytorch.org/t/bceloss-from-scratch/2655/3
+# #   https://gist.github.com/jihunchoi/f1434a77df9db1bb337417854b398df1
+# def weighted_cross_entropy_with_logits(logits, labels, weights):
+#
+#     log_probs = F.log_softmax(logits)
+#     labels    = labels.view(-1, 1)
+#     loss = -torch.gather(log_probs, dim=1, index=labels)
+#     loss = weights*loss.view(-1)
+#
+#     loss = loss.sum()/(weights.sum()+1e-12)
+#     return loss
 #
 #
+#
+#
+#
+# # original F1 smooth loss from rcnn
+# def weighted_smooth_l1( predicts, targets, weights, sigma=1.0):
+#     '''
+#         ResultLoss = outside_weights * SmoothL1(inside_weights * (box_pred - box_targets))
+#         SmoothL1(x) = 0.5 * (sigma * x)^2,    if |x| < 1 / sigma^2
+#                       |x| - 0.5 / sigma^2,    otherwise
+#
+#         inside_weights  = 1
+#         outside_weights = 1/num_examples
+#     '''
+#
+#     predicts = predicts.view(-1)
+#     targets  = targets.view(-1)
+#     weights  = weights.view(-1)
+#
+#     sigma2 = sigma * sigma
+#     diffs  =  predicts-targets
+#     smooth_l1_signs = torch.abs(diffs) <  (1.0 / sigma2)
+#     smooth_l1_signs = smooth_l1_signs.type(torch.cuda.FloatTensor)
+#
+#     smooth_l1_option1 = 0.5 * diffs* diffs *  sigma2
+#     smooth_l1_option2 = torch.abs(diffs) - 0.5  / sigma2
+#     loss = weights*(smooth_l1_option1*smooth_l1_signs + smooth_l1_option2*(1-smooth_l1_signs))
+#
+#     loss = loss.sum()/(weights.sum()+1e-12)
+#
+#     return loss
+#
+
+
 def run_check_soft_cross_entropy_loss():
     batch_size  = 64
     num_classes = 15

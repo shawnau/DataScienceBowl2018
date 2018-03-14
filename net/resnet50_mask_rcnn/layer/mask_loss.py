@@ -35,7 +35,3 @@ def mask_loss(logits, labels, instances):
  
     loss = binary_cross_entropy_with_logits(logits_flat, labels_flat)
     return loss
-
-
-if __name__ == '__main__':
-    print( '%s: calling main function ... ' % os.path.basename(__file__))

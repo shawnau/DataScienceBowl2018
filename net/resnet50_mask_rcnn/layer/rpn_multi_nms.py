@@ -110,12 +110,11 @@ def rpn_decode(window, delta):
     return box
 
 
-# this is in gpu ##################################################
 def rpn_nms(cfg, mode, inputs, window, logits_flat, deltas_flat):
     """
     This function:
-    1.
     1. Do non-maximum suppression on given window and logistic score
+    2. filter small proposals
     :param cfg: configure
     :param mode: mode. e.g. 'train', 'test', 'eval'
     :param inputs: input images
@@ -187,13 +186,3 @@ def rpn_nms(cfg, mode, inputs, window, logits_flat, deltas_flat):
 
     proposals = Variable(torch.from_numpy(np.vstack(proposals))).cuda()
     return proposals
-
-
-#-----------------------------------------------------------------------------  
-if __name__ == '__main__':
-    print( '%s: calling main function ... ' % os.path.basename(__file__))
-
-
-
- 
- 
