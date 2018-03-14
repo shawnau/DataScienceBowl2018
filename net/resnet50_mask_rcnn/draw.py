@@ -1,15 +1,14 @@
-from dataset.annotate import multi_mask_to_contour_overlay, instance_to_multi_mask
+from dataset.annotate import multi_mask_to_contour_overlay
+from dataset.reader import instance_to_multi_mask
 from net.metric import *
 
 if __name__ == '__main__':
-    from .configuration import *
+    from configuration import *
     from .layer.rpn_multi_nms     import *
     from .layer.rpn_multi_target  import *
     from .layer.rpn_multi_loss    import *
-
-
 else:
-    from .configuration import *
+    from configuration import *
     from .layer.rpn_multi_nms    import *
     from .layer.rpn_multi_target import *
     from .layer.rpn_multi_loss   import *

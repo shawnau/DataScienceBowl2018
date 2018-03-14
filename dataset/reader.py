@@ -2,7 +2,6 @@ import numpy
 
 from net.lib.box.process import is_small_box_at_boundary, is_small_box, is_big_box
 from utility.file import *
-
 from net.lib.box.process import *
 
 
@@ -14,7 +13,11 @@ IGNORE_BIG      = -3
 
 
 class ScienceDataset(Dataset):
-
+    """
+    train mode:
+        :return:
+        image, multi_mask, meta, index
+    """
     def __init__(self, split, transform=None, mode='train'):
         super(ScienceDataset, self).__init__()
         start = timer()
@@ -94,24 +97,24 @@ def multi_mask_to_annotation(multi_mask):
             h = (y1-y0)+1
 
             border = max(2, round(0.2*(w+h)/2))
-            #border = max(1, round(0.1*min(w,h)))
-            #border = 0
+            # border = max(1, round(0.1*min(w,h)))
+            # border = 0
             x0 = x0-border
             x1 = x1+border
             y0 = y0-border
             y1 = y1+border
 
-            #clip
+            # clip
             x0 = max(0,x0)
             y0 = max(0,y0)
             x1 = min(W-1,x1)
             y1 = min(H-1,y1)
 
-            #label
-            l = 1 #<todo> support multiclass later ... ?
+            # label
+            l = 1  # <todo> support multiclass later ... ?
             if is_small_box_at_boundary((x0,y0,x1,y1),W,H,MIN_SIZE):
                 l = IGNORE_BOUNDARY
-                continue  #completely ignore!
+                continue  # completely ignore!
             elif is_small_box((x0,y0,x1,y1),MIN_SIZE):
                 l = IGNORE_SMALL
                 continue
@@ -119,7 +122,6 @@ def multi_mask_to_annotation(multi_mask):
                 l = IGNORE_BIG
                 continue
 
-            # add --------------------
             box.append([x0,y0,x1,y1])
             label.append(l)
             instance.append(mask)
@@ -134,3 +136,27 @@ def multi_mask_to_annotation(multi_mask):
         instance = np.zeros((0,H,W),np.float32)
 
     return box, label, instance
+
+
+def instance_to_multi_mask(instance):
+    """
+    :param
+    instance: list of one vs all masks. e.g.
+            [[0, 1, 1, 0],
+             [0, 0, 0, 0],
+             [0, 0, 0, 0]], ...
+    :return:
+    multi_mask: a map records masks. e.g.
+        [[0, 1, 1, 0],
+         [2, 0, 0, 3],
+         [2, 0, 3, 3]]
+        for 3 masks in a 4*4 input
+    """
+    H,W = instance.shape[1:3]
+    multi_mask = np.zeros((H,W),np.int32)
+
+    num_masks = len(instance)
+    for i in range(num_masks):
+        multi_mask[instance[i] > 0] = i+1
+
+    return multi_mask

@@ -1,6 +1,6 @@
-from common import *
 import itertools
 
+from utility.func import np_softmax
 from net.lib.box.process import *
 
 

@@ -64,15 +64,3 @@ def mask_to_inner_contour(mask):
           | (pad[1:-1,1:-1] != pad[1:-1,2:])
     )
     return contour
-
-
-def instance_to_multi_mask(instance):
-
-    H,W = instance.shape[1:3]
-    multi_mask = np.zeros((H,W),np.int32)
-
-    num_masks = len(instance)
-    for i in range(num_masks):
-         multi_mask[instance[i]>0] = i+1
-
-    return multi_mask

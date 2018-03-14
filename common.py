@@ -2,35 +2,28 @@ import os
 # edit settings here
 ROOT_DIR = '/root/kaggle'
 
-DATA_DIR     = os.path.join(ROOT_DIR, 'data')  #'/media/root/5453d6d1-e517-4659-a3a8-d0a878ba4b60/data/kaggle/science2018/data' #
+DATA_DIR     = os.path.join(ROOT_DIR, 'data')
 SPLIT_DIR    = os.path.join(DATA_DIR, 'split')
 IMAGE_DIR    = os.path.join(DATA_DIR, 'image')
 DOWNLOAD_DIR = os.path.join(DATA_DIR, '__download__')
-
 RESULTS_DIR = os.path.join(ROOT_DIR, 'results')
 
 
-##---------------------------------------------------------------------
-import os
 from datetime import datetime
 PROJECT_PATH = os.path.dirname(os.path.realpath(__file__))
 IDENTIFIER   = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
 #numerical libs
-import math
 import numpy as np
 import random
-import PIL
-import cv2
 
 import matplotlib
 matplotlib.use('TkAgg')
-#matplotlib.use('Qt4Agg')
-#matplotlib.use('Qt5Agg')
-
+import cv2
 
 # torch libs
 import torch
+from torch.utils.data.sampler import *
 import torchvision.transforms as transforms
 from torch.utils.data.dataset import Dataset
 from torch.utils.data import DataLoader
@@ -42,11 +35,11 @@ from torch.autograd import Variable
 import torch.optim as optim
 from torch.nn.parallel.data_parallel import data_parallel
 
-
 # std libs
 import collections
 import copy
 import numbers
+import math
 import inspect
 import shutil
 from timeit import default_timer as timer
@@ -66,22 +59,10 @@ import skimage.morphology
 from scipy import ndimage
 
 
-#---------------------------------------------------------------------------------
-# https://stackoverflow.com/questions/34968722/how-to-implement-the-softmax-function-in-python
-def np_softmax(x):
-    """Compute softmax values for each sets of scores in x."""
-    e_x = np.exp(x - np.max(x, axis=1, keepdims=True))
-    return e_x / e_x.sum(axis=1, keepdims=True)
-
-def np_sigmoid(x):
-  return 1 / (1 + np.exp(-x))
-
-
-#---------------------------------------------------------------------------------
 print('@%s:  ' % os.path.basename(__file__))
 
 if 1:
-    SEED = 35202 #1510302253  #int(time.time()) #
+    SEED = int(time.time())
     random.seed(SEED)
     np.random.seed(SEED)
     torch.manual_seed(SEED)
@@ -90,23 +71,22 @@ if 1:
     print ('\t\tSEED=%d'%SEED)
 
 if 1:
-    torch.backends.cudnn.benchmark = True  ##uses the inbuilt cudnn auto-tuner to find the fastest convolution algorithms. -
+    # uses the inbuilt cudnn auto-tuner to find the fastest convolution algorithms
+    torch.backends.cudnn.benchmark = True
     torch.backends.cudnn.enabled   = True
-    print ('\tset cuda environment')
-    print ('\t\ttorch.__version__              =', torch.__version__)
-    print ('\t\ttorch.version.cuda             =', torch.version.cuda)
-    print ('\t\ttorch.backends.cudnn.version() =', torch.backends.cudnn.version())
+    print('\tset cuda environment')
+    print('\t\ttorch.__version__              =', torch.__version__)
+    print('\t\ttorch.version.cuda             =', torch.version.cuda)
+    print('\t\ttorch.backends.cudnn.version() =', torch.backends.cudnn.version())
     try:
-        print ('\t\tos[\'CUDA_VISIBLE_DEVICES\']     =',os.environ['CUDA_VISIBLE_DEVICES'])
+        print('\t\tos[\'CUDA_VISIBLE_DEVICES\']     =',os.environ['CUDA_VISIBLE_DEVICES'])
         NUM_CUDA_DEVICES = len(os.environ['CUDA_VISIBLE_DEVICES'].split(','))
     except Exception:
-        print ('\t\tos[\'CUDA_VISIBLE_DEVICES\']     =','None')
+        print('\t\tos[\'CUDA_VISIBLE_DEVICES\']     =','None')
         NUM_CUDA_DEVICES = 1
 
-    print ('\t\ttorch.cuda.device_count()      =', torch.cuda.device_count())
-    print ('\t\ttorch.cuda.current_device()    =', torch.cuda.current_device())
+    print('\t\ttorch.cuda.device_count()      =', torch.cuda.device_count())
+    print('\t\ttorch.cuda.current_device()    =', torch.cuda.current_device())
 
 
 print('')
-
-#---------------------------------------------------------------------------------

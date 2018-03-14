@@ -1,10 +1,10 @@
-from common import *
-from utility.draw import*
-
 from net.lib.box.process import*
 
 
 # faster-rcnn box encode/decode
+from utility.func import np_sigmoid
+
+
 def rcnn_encode(window, truth_box):
     return box_transform(window, truth_box)
 
@@ -40,7 +40,7 @@ def rcnn_nms(cfg, mode, inputs, proposals, logits, deltas ):
     deltas    = deltas.cpu().data.numpy().reshape(-1, num_classes,4)
     proposals = proposals.cpu().data.numpy()
 
-    #non-max suppression
+    # non-max suppression
     detections = []
     for b in range(batch_size):
         detection = [np.empty((0,7),np.float32),]

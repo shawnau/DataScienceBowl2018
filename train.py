@@ -1,11 +1,8 @@
-import os
-
-from utility.file import Logger
 from dataset.transform import *
 from dataset.reader import *
 from net.scheduler import *
 from net.resnet50_mask_rcnn.model import *
-from net.resnet50_mask_rcnn.configuration import Configuration
+from configuration import Configuration
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'  #'3,2' #'3,2,1,0'
 
 
@@ -15,12 +12,12 @@ WIDTH, HEIGHT = 256, 256
 class TrainFolder:
     def __init__(self, model_name):
         self.work_dir = os.path.join(RESULTS_DIR, model_name)
-        self.checkpoint = os.path.join(self.work_dir, 'checkpoint')
+        self.checkpoint_dir = os.path.join(self.work_dir, 'checkpoint_dir')
         self.train_result = os.path.join(self.work_dir, 'train')
         self.backup = os.path.join(self.work_dir, 'backup')
 
         os.makedirs(self.work_dir, exist_ok=True)
-        os.makedirs(self.checkpoint, exist_ok=True)
+        os.makedirs(self.checkpoint_dir, exist_ok=True)
         os.makedirs(self.train_result, exist_ok=True)
         os.makedirs(self.backup, exist_ok=True)
         backup_project_as_zip(PROJECT_PATH, os.path.join(self.work_dir, 'backup', 'code.train.%s.zip' % IDENTIFIER))
@@ -35,7 +32,7 @@ def train_augment(image, multi_mask, meta, index):
             scale_limit=[1/2, 2],
             rotate_limit=[-45, 45],
             borderMode=cv2.BORDER_REFLECT_101,
-            u=0.5) #borderMode=cv2.BORDER_CONSTANT
+            u=0.5)
 
     image, multi_mask = random_crop_transform(image, multi_mask, WIDTH, HEIGHT, u=0.5)
     image, multi_mask = random_horizontal_flip_transform(image, multi_mask, 0.5)
@@ -102,87 +99,72 @@ def validate(net, test_loader):
     return test_loss, test_acc
 
 
-def run_train(model_name, train_split, valid_split, checkpoint=None, pretrain_file=None):
+def run_train():
 
-    work_dir = os.path.join(RESULTS_DIR, model_name)
+    cfg = Configuration()
+    f = TrainFolder(cfg.model_name)
     skip = ['crop', 'mask']
 
-    # setup
-    f = TrainFolder(model_name)
-
     log = Logger()
-    log.open(os.path.join(work_dir, 'log.train.txt'), mode='a')
+    log.open(os.path.join(f.work_dir, 'log.train.txt'), mode='a')
     log.write('\n--- [START %s] %s\n\n' % (IDENTIFIER, '-' * 64))
     log.write('** some experiment setting **\n')
     log.write('\tSEED         = %u\n' % SEED)
     log.write('\tPROJECT_PATH = %s\n' % PROJECT_PATH)
-    log.write('\tout_dir      = %s\n' % work_dir)
+    log.write('\tout_dir      = %s\n' % f.work_dir)
     log.write('\n')
 
     # net -------------------------------------------------
     log.write('** net setting **\n')
-    cfg = Configuration()
     net = MaskRcnnNet(cfg).cuda()
 
-    if checkpoint is not None:
-        checkpoint = os.path.join(f.checkpoint, checkpoint)
-        log.write('\tcheckpoint = %s\n' % checkpoint)
-        net.load_state_dict(torch.load(checkpoint,
-                                       map_location=lambda storage, loc: storage))
+    if cfg.checkpoint is not None:
+        checkpoint = os.path.join(f.checkpoint_dir, cfg.checkpoint)
+        log.write('\tcheckpoint_dir = %s\n' % checkpoint)
+        net.load_state_dict(torch.load(checkpoint, map_location=lambda storage, loc: storage))
 
-    if pretrain_file is not None:
-        pretrain_file = os.path.join(f.checkpoint, pretrain_file)
+    if cfg.pretrain is not None:
+        pretrain_file = os.path.join(f.checkpoint_dir, cfg.pretrain)
         log.write('\tpretrain_file = %s\n' % pretrain_file)
         net.load_pretrain(pretrain_file, skip)
 
-    log.write('%s\n\n' % type(net))
-    log.write('%s\n' % net.version)
-    log.write('\n')
-
     # optimiser -------------------------------------------------
-    iter_accum  = 1
-    batch_size  = 16
-
-    num_iters   = 1000*1000
-    iter_smooth = 20  # calculate smoothed loss over each 20 iter
-    iter_valid  = 100
-    iter_save   = list(range(0, num_iters, 500)) + [num_iters]
-
-    LR = None  #LR = StepLR([ (0, 0.01),  (200, 0.001),  (300, -1)])
     optimizer = optim.SGD(filter(lambda p: p.requires_grad, net.parameters()),
-                          lr=0.01/iter_accum,
+                          lr=0.01/cfg.iter_accum,
                           momentum=0.9,
                           weight_decay=0.0001
                           )
+    lr_scheduler = cfg.lr_scheduler
 
     start_iter  = 0
     start_epoch = 0.
-    if checkpoint is not None:
-        checkpoint  = torch.load(checkpoint.replace('_model.pth', '_optimizer.pth'))
-        start_iter  = checkpoint['iter' ]
-        start_epoch = checkpoint['epoch']
+    if cfg.checkpoint is not None:
+        checkpoint = os.path.join(f.checkpoint_dir, cfg.checkpoint)
+        checkpoint_optim  = torch.load(checkpoint.replace('_model.pth', '_optimizer.pth'))
+        start_iter  = checkpoint_optim['iter' ]
+        start_epoch = checkpoint_optim['epoch']
 
-        rate = get_learning_rate(optimizer)  #load all except learning rate
-        optimizer.load_state_dict(checkpoint['optimizer'])
+        rate = get_learning_rate(optimizer)  # load all except learning rate
+        optimizer.load_state_dict(checkpoint_optim['optimizer'])
         adjust_learning_rate(optimizer, rate)
 
     # dataset -------------------------------------------------
     log.write('** dataset setting **\n')
-    train_dataset = ScienceDataset(train_split, mode='train', transform=train_augment)
+    train_dataset = ScienceDataset(cfg.train_split, mode='train', transform=train_augment)
     train_loader  = DataLoader(
                         train_dataset,
                         sampler=RandomSampler(train_dataset),
-                        batch_size=batch_size,
+                        batch_size=cfg.batch_size,
                         drop_last=True,
                         num_workers=4,
                         pin_memory=True,
                         collate_fn=make_collate)
 
-    valid_dataset = ScienceDataset(valid_split, mode='train', transform=valid_augment)
+    valid_dataset = ScienceDataset(cfg.valid_split, mode='train', transform=valid_augment)
     valid_loader  = DataLoader(
                         valid_dataset,
                         sampler=SequentialSampler(valid_dataset),
-                        batch_size=batch_size,
+                        batch_size=cfg.batch_size,
                         drop_last=False,
                         num_workers=4,
                         pin_memory=True,
@@ -195,20 +177,20 @@ def run_train(model_name, train_split, valid_split, checkpoint=None, pretrain_fi
     log.write('\tlen(valid_dataset)  = %d\n' % len(valid_dataset))
     log.write('\tlen(train_loader)   = %d\n' % len(train_loader))
     log.write('\tlen(valid_loader)   = %d\n' % len(valid_loader))
-    log.write('\tbatch_size  = %d\n' % batch_size)
-    log.write('\titer_accum  = %d\n' % iter_accum)
-    log.write('\tbatch_size*iter_accum  = %d\n' % (batch_size*iter_accum))
+    log.write('\tbatch_size  = %d\n' % cfg.batch_size)
+    log.write('\titer_accum  = %d\n' % cfg.iter_accum)
+    log.write('\tbatch_size*iter_accum  = %d\n' % (cfg.batch_size*cfg.iter_accum))
     log.write('\n')
 
     # start training here! -------------------------------------------------
     log.write('** start training here! **\n')
     log.write(' optimizer=%s\n' % str(optimizer))
     log.write(' momentum=%f\n' % optimizer.param_groups[0]['momentum'])
-    log.write(' LR=%s\n\n' % str(LR))
+    log.write(' lr_scheduler=%s\n\n' % str(lr_scheduler))
 
     log.write(' images_per_epoch = %d\n\n' % len(train_dataset))
-    log.write(' rate    iter   epoch  num   | valid_loss               | train_loss               | batch_loss               |  time          \n')
-    log.write('-------------------------------------------------------------------------------------------------------------------------------\n')
+    log.write(' rate    iter   epoch  num   | valid_loss rpnc rpnr rcnnc rcnnr mask | train_loss rpnc rpnr rcnnc rcnnr mask | batch_loss _loss rpnc rpnr rcnnc rcnnr mask |  time          \n')
+    log.write('-------------------------------------------------------------------------------------------------------------------------------------------------------------------\n')
 
     train_loss  = np.zeros(6,np.float32)
     train_acc   = 0.0
@@ -222,7 +204,7 @@ def run_train(model_name, train_split, valid_split, checkpoint=None, pretrain_fi
     j = 0  # accum counter
     i = 0  # iter  counter
 
-    while i < num_iters:  # loop over the dataset multiple times
+    while i < cfg.num_iters:  # loop over the dataset multiple times
         sum_train_loss = np.zeros(6,np.float32)
         sum_train_acc  = 0.0
         sum = 0
@@ -233,11 +215,11 @@ def run_train(model_name, train_split, valid_split, checkpoint=None, pretrain_fi
             if all(len(b) == 0 for b in truth_boxes):
                 continue
             batch_size = len(indices)
-            i = j/iter_accum + start_iter
-            epoch = (i-start_iter)*batch_size*iter_accum/len(train_dataset) + start_epoch
+            i = j/cfg.iter_accum + start_iter
+            epoch = (i-start_iter)*batch_size*cfg.iter_accum/len(train_dataset) + start_epoch
             num_products = epoch*len(train_dataset)
-            # validate iter
-            if i % iter_valid == 0:
+            # validate iter -------------------------------------------------
+            if i % cfg.iter_valid == 0:
                 net.set_mode('valid')
                 valid_loss, valid_acc = validate(net, valid_loader)
                 net.set_mode('train')
@@ -250,11 +232,11 @@ def run_train(model_name, train_split, valid_split, checkpoint=None, pretrain_fi
                          batch_loss[0], batch_loss[1], batch_loss[2], batch_loss[3], batch_loss[4], batch_loss[5],#batch_acc,
                          time_to_str((timer() - start)/60)))
                 time.sleep(0.01)
-            # save checkpoint
-            if i in iter_save:
-                model_config_path = os.path.join(f.checkpoint, 'configuration.pkl')
-                model_path = os.path.join(f.checkpoint, '%08d_model.pth'%i)
-                optimizer_path = os.path.join(f.checkpoint, '%08d_optimizer.pth'%i)
+            # save checkpoint_dir -------------------------------------------------
+            if i in cfg.iter_save:
+                model_config_path = os.path.join(f.checkpoint_dir, 'configuration.pkl')
+                model_path = os.path.join(f.checkpoint_dir, '%08d_model.pth' % i)
+                optimizer_path = os.path.join(f.checkpoint_dir, '%08d_optimizer.pth' % i)
 
                 torch.save(net.state_dict(), model_path)
                 torch.save({
@@ -266,12 +248,12 @@ def run_train(model_name, train_split, valid_split, checkpoint=None, pretrain_fi
                     pickle.dump(cfg, pickle_file, pickle.HIGHEST_PROTOCOL)
 
             # learning rate schduler -------------------------------------------------
-            if LR is not None:
-                lr = LR.get_rate(i)
+            if lr_scheduler is not None:
+                lr = lr_scheduler.get_rate(i)
                 if lr < 0:
                     break
-                adjust_learning_rate(optimizer, lr/iter_accum)
-            rate = get_learning_rate(optimizer)*iter_accum
+                adjust_learning_rate(optimizer, lr/cfg.iter_accum)
+            rate = get_learning_rate(optimizer)*cfg.iter_accum
 
             # one iteration update  -------------------------------------------------
             inputs = Variable(inputs).cuda()
@@ -280,7 +262,7 @@ def run_train(model_name, train_split, valid_split, checkpoint=None, pretrain_fi
 
             # accumulated update
             loss.backward()
-            if j % iter_accum == 0:
+            if j % cfg.iter_accum == 0:
                 # torch.nn.utils.clip_grad_norm(net.parameters(), 1)
                 optimizer.step()
                 optimizer.zero_grad()
@@ -298,7 +280,7 @@ def run_train(model_name, train_split, valid_split, checkpoint=None, pretrain_fi
             sum_train_loss += batch_loss
             sum_train_acc  += batch_acc
             sum += 1
-            if i % iter_smooth == 0:
+            if i % cfg.iter_smooth == 0:
                 train_loss = sum_train_loss/sum
                 train_acc  = sum_train_acc /sum
                 sum_train_loss = np.zeros(6,np.float32)
@@ -317,9 +299,9 @@ def run_train(model_name, train_split, valid_split, checkpoint=None, pretrain_fi
 
     # save last
     if 1:
-        model_config_path = os.path.join(work_dir, 'checkpoint', 'configuration.pkl')
-        model_path = os.path.join(work_dir, 'checkpoint', '%d_model.pth'%i)
-        optimizer_path = os.path.join(work_dir, 'checkpoint', '%08d_optimizer.pth'%i)
+        model_config_path = os.path.join(f.work_dir, 'checkpoint_dir', 'configuration.pkl')
+        model_path = os.path.join(f.work_dir, 'checkpoint_dir', '%d_model.pth'%i)
+        optimizer_path = os.path.join(f.work_dir, 'checkpoint_dir', '%08d_optimizer.pth'%i)
 
         torch.save(net.state_dict(), model_path)
         torch.save({
@@ -334,13 +316,7 @@ def run_train(model_name, train_split, valid_split, checkpoint=None, pretrain_fi
 
 
 if __name__ == '__main__':
-    print('%s: calling main function ... ' % os.path.basename(__file__))
 
-    run_train(model_name='mask-rcnn-50-gray500-02',
-              train_split='train1_ids_gray2_500',
-              valid_split='valid1_ids_gray2_43',
-              pretrain_file=None,
-              checkpoint=None
-              )
+    run_train()
 
     print('\nsucess!')

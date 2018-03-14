@@ -2,11 +2,7 @@
 from common import *
 from utility.draw import*
 from net.lib.box.process import*
-
-if __name__ == '__main__':
-    from rcnn_nms     import *
-else:
-    from .rcnn_nms    import *
+from .rcnn_nms import *
 
 
 def add_truth_box_to_proposal(cfg, proposal, b, truth_box, truth_label, score=-1):
@@ -26,7 +22,7 @@ def add_truth_box_to_proposal(cfg, proposal, b, truth_box, truth_label, score=-1
 
 
 # gpu version
-## see https://github.com/ruotianluo/pytorch-faster-rcnn
+# see https://github.com/ruotianluo/pytorch-faster-rcnn
 def make_one_rcnn_target(cfg, input, proposal, truth_box, truth_label):
 
     sampled_proposal = Variable(torch.FloatTensor((0,7))).cuda()
@@ -63,7 +59,6 @@ def make_one_rcnn_target(cfg, input, proposal, truth_box, truth_label):
     fg_index = np.where( max_overlap >= cfg.rcnn_train_fg_thresh_low )[0]
     bg_index = np.where((max_overlap <  cfg.rcnn_train_bg_thresh_high) & \
                         (max_overlap >= cfg.rcnn_train_bg_thresh_low))[0]
-
 
     # sampling for class balance
     num_classes = cfg.num_classes
@@ -108,7 +103,6 @@ def make_one_rcnn_target(cfg, input, proposal, truth_box, truth_label):
         bg_index = np.random.choice(num_proposal, size=num_bg, replace=num_proposal<num_bg)
 
     assert ((num_fg+num_bg)== num)
-
 
     # selecting both fg and bg
     index = np.concatenate([fg_index, bg_index], 0)
@@ -159,14 +153,12 @@ def make_rcnn_target(cfg, mode, inputs, proposals, truth_boxes, truth_labels):
         truth_label    = truth_labels[b]
 
         if len(truth_box) != 0:
-            if len(proposals)==0:
+            if len(proposals) == 0:
                 proposal = np.zeros((0,7),np.float32)
             else:
                 proposal = proposals[proposals[:,0]==b]
 
-
             proposal = add_truth_box_to_proposal(cfg, proposal, b, truth_box, truth_label)
-
 
             sampled_proposal, sampled_label, sampled_assign, sampled_target = \
                 make_one_rcnn_target(cfg, input, proposal, truth_box, truth_label)
@@ -175,7 +167,6 @@ def make_rcnn_target(cfg, mode, inputs, proposals, truth_boxes, truth_labels):
             sampled_labels.append(sampled_label)
             sampled_assigns.append(sampled_assign)
             sampled_targets.append(sampled_target)
-
 
     sampled_proposals = torch.cat(sampled_proposals,0)
     sampled_labels    = torch.cat(sampled_labels,0)

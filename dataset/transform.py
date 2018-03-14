@@ -42,9 +42,16 @@ def fix_resize_transform(image, mask, w, h):
 
 
 def fix_crop_transform(image, mask, x, y, w, h):
-    H,W = image.shape[:2]
-    assert(H>=h)
-    assert(W >=w)
+    """
+    (x,   y)--------(x+w,   y)
+      |                 |
+      |                 |
+    (x, y+h)--------(x+w, y+h)
+    """
+
+    H, W = image.shape[:2]
+    assert(H >= h)
+    assert(W >= w)
 
     if (x==-1 & y==-1):
         x=(W-w)//2
@@ -58,9 +65,16 @@ def fix_crop_transform(image, mask, x, y, w, h):
 
 
 def random_crop_transform(image, mask, w, h, u=0.5):
-    x,y = -1,-1
+    """
+    :param image: original image
+    :param mask: multi_mask
+    :param w: width to crop
+    :param h: height to crop
+    :param u: prob to do crop
+    :return:
+    """
+    x, y = -1, -1
     if random.random() < u:
-
         H,W = image.shape[:2]
         if H!=h:
             y = np.random.choice(H-h)
@@ -114,7 +128,7 @@ def random_rotate90_transform(image, mask, u=0.5):
 def relabel_multi_mask(multi_mask):
     data = multi_mask
     data = data[:,:,np.newaxis]
-    unique_color = set( tuple(v) for m in data for v in m )
+    unique_color = set(tuple(v) for m in data for v in m )
     #print(len(unique_color))
 
     H,W = data.shape[:2]

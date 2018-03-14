@@ -19,7 +19,13 @@ def print_precision(precision):
 
 
 def compute_average_precision_for_mask(predict, truth, t_range=np.arange(0.5, 1.0, 0.05)):
-    num_truth   = len(np.unique(truth  ))
+    """
+    :param predict: multi_masks for each instance
+    :param truth: multi_masks for ground truth
+    :param t_range: thresholds
+    :return:
+    """
+    num_truth   = len(np.unique(truth))
     num_predict = len(np.unique(predict))
 
     # Compute intersection between all objects
@@ -35,8 +41,8 @@ def compute_average_precision_for_mask(predict, truth, t_range=np.arange(0.5, 1.
     union = area_true + area_pred - intersection
 
     # Exclude background from the analysis
-    intersection = intersection[1:,1:]
-    union = union[1:,1:]
+    intersection = intersection[1:, 1:]
+    union = union[1:, 1:]
     union[union == 0] = 1e-9
 
     # Compute the intersection over union
@@ -96,8 +102,6 @@ def compute_precision_for_box(box, truth_box, truth_label, threshold=[0.5]):
             index = index[np.where(invalid_valid_overlap[index]>t)[0]]
             r[index] = INVALID
 
-
-        ##-----------------------------
         num_truth = (truth_r!=INVALID).sum()
         num_hit   = (truth_r==HIT    ).sum()
         num_miss  = (truth_r==MISS   ).sum()

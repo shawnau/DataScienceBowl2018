@@ -1,7 +1,4 @@
-import os, sys
-
 from dataset.annotate import *
-from net.metric import *
 from net.resnet50_mask_rcnn.draw import *
 
 sys.path.append(os.path.dirname(__file__))
@@ -58,7 +55,6 @@ def eval_augment(image, multi_mask, meta, index):
 def eval_collate(batch):
 
     batch_size = len(batch)
-    #for b in range(batch_size): print (batch[b][0].size())
     inputs    = torch.stack([batch[b][0]for b in range(batch_size)], 0)
     boxes     =             [batch[b][1]for b in range(batch_size)]
     labels    =             [batch[b][2]for b in range(batch_size)]
@@ -70,10 +66,11 @@ def eval_collate(batch):
     return [inputs, boxes, labels, instances, metas, images, indices]
 
 
-def run_evaluate(model, checkpoint, valid_split):
+def run_evaluate():
 
-    work_dir = os.path.join(RESULTS_DIR, model)
-    initial_checkpoint = os.path.join(RESULTS_DIR, model, 'checkpoint', checkpoint)
+    cfg = Configuration()
+    work_dir = os.path.join(RESULTS_DIR, cfg.model_name)
+    initial_checkpoint = os.path.join(RESULTS_DIR, cfg.model_name, 'checkpoint', cfg.valid_checkpoint)
 
     os.makedirs(os.path.join(work_dir, 'evaluate', 'overlays'), exist_ok=True)
     os.makedirs(os.path.join(work_dir, 'evaluate', 'npys'), exist_ok=True)
@@ -81,7 +78,7 @@ def run_evaluate(model, checkpoint, valid_split):
     os.makedirs(os.path.join(work_dir, 'backup'), exist_ok=True)
 
     log = Logger()
-    log.open(work_dir+'/log.evaluate.txt',mode='a')
+    log.open(work_dir+'/log.evaluate.txt', mode='a')
     log.write('\n--- [START %s] %s\n\n' % (IDENTIFIER, '-' * 64))
     log.write('** some experiment setting **\n')
     log.write('\tSEED         = %u\n' % SEED)
@@ -105,8 +102,7 @@ def run_evaluate(model, checkpoint, valid_split):
     # dataset ----------------------------------------
     log.write('** dataset setting **\n')
 
-    test_dataset = ScienceDataset(valid_split, mode='train',
-                                  transform = eval_augment)
+    test_dataset = ScienceDataset(cfg.valid_split, mode='train', transform=eval_augment)
     test_loader  = DataLoader(
                         test_dataset,
                         sampler = SequentialSampler(test_dataset),
@@ -116,7 +112,6 @@ def run_evaluate(model, checkpoint, valid_split):
                         pin_memory  = True,
                         collate_fn  = eval_collate)
 
-
     log.write('\ttest_dataset.split = %s\n'%(test_dataset.split))
     log.write('\tlen(test_dataset)  = %d\n'%(len(test_dataset)))
     log.write('\n')
@@ -124,10 +119,10 @@ def run_evaluate(model, checkpoint, valid_split):
     # start evaluation here!
     log.write('** start evaluation here! **\n')
     mask_average_precisions = []
-    box_precisions_50  = []
+    box_precisions_50 = []
 
     test_num  = 0
-    test_loss = np.zeros(5,np.float32)
+    test_loss = np.zeros(5, np.float32)
     test_acc  = 0
     for i, (inputs, truth_boxes, truth_labels, truth_instances, metas, images, indices) in enumerate(test_loader, 0):
         if all((truth_label > 0).sum() == 0 for truth_label in truth_labels):
@@ -142,25 +137,23 @@ def run_evaluate(model, checkpoint, valid_split):
         revert(net, images)
 
         batch_size = len(indices)
-        assert(batch_size==1)  #note current version support batch_size==1 for variable size input
-                               #to use batch_size>1, need to fix code for net.windows, etc
-
+        assert(batch_size == 1)  # currently support batch_size==1 only
         batch_size,C,H,W = inputs.size()
-        inputs = inputs.data.cpu().numpy()
-        #
-        # window          = net.rpn_window
-        # rpn_logits_flat = net.rpn_logits_flat.data.cpu().numpy()
-        # rpn_deltas_flat = net.rpn_deltas_flat.data.cpu().numpy()
-        # proposals  = net.rpn_proposals
+
+        #inputs = inputs.data.cpu().numpy()
+        #window          = net.rpn_window
+        #rpn_logits_flat = net.rpn_logits_flat.data.cpu().numpy()
+        #rpn_deltas_flat = net.rpn_deltas_flat.data.cpu().numpy()
+        #proposals  = net.rpn_proposals
         masks      = net.masks
         detections = net.detections.cpu().numpy()
 
         for b in range(batch_size):
             image  = images[b]
-            height,width  = image.shape[:2]
+            height, width  = image.shape[:2]
             mask = masks[b]
 
-            index = np.where(detections[:,0]==b)[0]
+            index = np.where(detections[:, 0] == b)[0]
             detection = detections[index]
             box = detection[:,1:5]
 
@@ -169,7 +162,7 @@ def run_evaluate(model, checkpoint, valid_split):
             truth_label= truth_labels[b]
             truth_instance= truth_instances[b]
 
-            mask_average_precision, mask_precision =\
+            mask_average_precision, mask_precision = \
                 compute_average_precision_for_mask(mask, truth_mask, t_range=np.arange(0.5, 1.0, 0.05))
 
             box_precision, box_recall, box_result, truth_box_result = \
@@ -179,40 +172,38 @@ def run_evaluate(model, checkpoint, valid_split):
             mask_average_precisions.append(mask_average_precision)
             box_precisions_50.append(box_precision)
 
-            # --------------------------------------------
+            # print results --------------------------------------------
             id = test_dataset.ids[indices[b]]
-            name =id.split('/')[-1]
-            print('%d\t%s\t%0.5f  (%0.5f)'%(i,name,mask_average_precision, box_precision))
+            name = id.split('/')[-1]
+            print('%d\t%s\t%0.5f  (%0.5f)' % (i, name, mask_average_precision, box_precision))
 
-            #----
+            # draw prediction ------------------------------------------
             contour_overlay  = multi_mask_to_contour_overlay(mask, image, color=[0,255,0])
             color_overlay    = multi_mask_to_color_overlay(mask, color='summer')
             color1_overlay   = multi_mask_to_contour_overlay(mask, color_overlay, color=[255,255,255])
             all1 = np.hstack((image, contour_overlay, color1_overlay))
 
-            all6 = draw_multi_proposal_metric(cfg, image, detection, truth_box, truth_label,[0,255,255],[255,0,255],[255,255,0])
-            all7 = draw_mask_metric(cfg, image, mask, truth_box, truth_label, truth_instance)
+            all6 = draw_multi_proposal_metric(cfg, image, detection,
+                                              truth_box, truth_label,
+                                              [0,255,255], [255,0,255], [255,255,0])
+            all7 = draw_mask_metric(cfg, image, mask,
+                                    truth_box, truth_label, truth_instance)
 
-            cv2.imwrite(os.path.join(work_dir, 'evaluate', 'overlays', '%s.png' % id), color1_overlay)
-            #image_show('overlay_mask',overlay_mask)
-            #image_show('overlay_truth',overlay_truth)
-            #image_show('overlay_error',overlay_error)
-            #image_show('all1',all1)
-            #image_show('all6',all6)
-            #image_show('all7',all7)
-            #cv2.waitKey(0)
+            cv2.imwrite(os.path.join(work_dir, 'evaluate', 'overlays', '%s.png' % id), all1)
+            cv2.imwrite(os.path.join(work_dir, 'evaluate', 'overlays', '%s.png' % id), all6)
+            cv2.imwrite(os.path.join(work_dir, 'evaluate', 'overlays', '%s.png' % id), all7)
 
         # print statistics  ------------
-        test_acc  += 0 #batch_size*acc[0][0]
-        # test_loss += batch_size*np.array((
-        #                    loss.cpu().data.numpy(),
-        #                    net.rpn_cls_loss.cpu().data.numpy(),
-        #                    net.rpn_reg_loss.cpu().data.numpy(),
-        #                     0,0,
-        #                  ))
-        test_num  += batch_size
+        test_acc += 0 #batch_size*acc[0][0]
+        test_loss += batch_size*np.array((
+                           net.loss.cpu().data.numpy(),
+                           net.rpn_cls_loss.cpu().data.numpy(),
+                           net.rpn_reg_loss.cpu().data.numpy(),
+                            0,0,
+                         ))
+        test_num += batch_size
 
-    #assert(test_num == len(test_loader.sampler))
+    # assert(test_num == len(test_loader.sampler))
     test_acc  = test_acc/test_num
     test_loss = test_loss/test_num
 
@@ -225,87 +216,12 @@ def run_evaluate(model, checkpoint, valid_split):
     mask_average_precisions = np.array(mask_average_precisions)
     box_precisions_50 = np.array(box_precisions_50)
     log.write('-------------\n')
-    log.write('mask_average_precision = %0.5f\n'%mask_average_precisions.mean())
-    log.write('box_precision@0.5 = %0.5f\n'%box_precisions_50.mean())
+    log.write('mask_average_precision = %0.5f\n' % mask_average_precisions.mean())
+    log.write('box_precision@0.5 = %0.5f\n' % box_precisions_50.mean())
     log.write('\n')
-
-
-## evaluate post process here ####-------------------------------------
-# def run_evaluate_map():
-#
-#     out_dir = RESULTS_DIR + '/mask-rcnn-gray-011b-drop1'
-#     split   = 'valid1_ids_gray_only_43'
-#
-#     #------------------------------------------------------------------
-#     log = Logger()
-#     log.open(out_dir+'/log.evaluate.txt',mode='a')
-#
-#     #os.makedirs(out_dir +'/eval/'+split+'/label', exist_ok=True)
-#     #os.makedirs(out_dir +'/eval/'+split+'/final', exist_ok=True)
-#
-#
-#     image_files = glob.glob(out_dir + '/submit/npys/*.png')
-#     image_files.sort()
-#
-#     average_precisions = []
-#     for image_file in image_files:
-#         #image_file = image_dir + '/0a849e0eb15faa8a6d7329c3dd66aabe9a294cccb52ed30a90c8ca99092ae732.png'
-#
-#         name  = image_file.split('/')[-1].replace('.png','')
-#
-#         image   = cv2.imread(DATA_DIR + '/image/stage1_train/' + name + '/images/' + name +'.png')
-#         truth   = np.load(DATA_DIR    + '/image/stage1_train/' + name + '/multi_mask.npy').astype(np.int32)
-#         predict = np.load(out_dir     + '/submit/npys/' + name + '.npy').astype(np.int32)
-#         assert(predict.shape == truth.shape)
-#         assert(predict.shape[:2] == image.shape[:2])
-#
-#
-#         #image_show('image',image)
-#         #image_show('mask',mask)
-#         #cv2.waitKey(0)
-#
-#
-#         #baseline labeling  -------------------------
-#
-#
-#         # fill hole, file small, etc ...
-#         # label = filter_small(label, threshold=15)
-#
-#
-#         average_precision, precision = compute_average_precision(predict, truth)
-#         average_precisions.append(average_precision)
-#
-#         #save and show  -------------------------
-#         print(average_precision)
-#
-#         # overlay = (skimage.color.label2rgb(label, bg_label=0, bg_color=(0, 0, 0))*255).astype(np.uint8)
-#         # cv2.imwrite(out_dir +'/eval/'+split+'/label/' + name + '.png',overlay)
-#         # np.save    (out_dir +'/eval/'+split+'/label/' + name + '.npy',label)
-#
-#
-#         # overlay1 = draw_label_contour (image, label )
-#         # mask  = cv2.cvtColor(mask,cv2.COLOR_GRAY2BGR)
-#         # final = np.hstack((image, overlay1, overlay, mask))
-#         # final = final.astype(np.uint8)
-#         # cv2.imwrite(out_dir +'/eval/'+split+'/final/' + name + '.png',final)
-#         #
-#         #
-#         # image_show('image',image)
-#         # image_show('mask',mask)
-#         # image_show('overlay',overlay)
-#         # cv2.waitKey(1)
-#
-#     ##----------------------------------------------
-#     average_precisions = np.array(average_precisions)
-#     log.write('-------------\n')
-#     log.write('average_precision = %0.5f\n'%average_precisions.mean())
-#     log.write('\n')
-#
 
 
 if __name__ == '__main__':
     print( '%s: calling main function ... ' % os.path.basename(__file__))
-    run_evaluate(model='mask-rcnn-50-gray500-02',
-                 checkpoint='0004600_model.pth',
-                 valid_split='test1_ids_gray2_53')
+    run_evaluate()
     print('\nsucess!')

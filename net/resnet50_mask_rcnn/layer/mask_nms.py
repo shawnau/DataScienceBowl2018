@@ -1,6 +1,5 @@
-from common import *
-from net.lib.box.process import *
 from utility.draw import *
+from utility.func import np_sigmoid
 
 
 def make_empty_masks(cfg, mode, inputs):#<todo>
@@ -16,14 +15,14 @@ def mask_nms(cfg, mode, inputs, proposals, mask_logits):
     """
     1. do non-maximum suppression to remove overlapping segmentation
     2. resize the masks from mask head output (28*28) into bbox size
-    3. put the masks into input image
+    3. paste the masks into input image
     :param cfg:
     :param mode:
     :param inputs:
     :param proposals:
     :param mask_logits: num_class planes of 28*28 size
     :return:
-        masks of the same size as input
+        multi_masks of the same size as input
     """
     # images = (inputs.data.cpu().numpy().transpose((0,2,3,1))*255).astype(np.uint8)
 

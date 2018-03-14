@@ -1,10 +1,6 @@
-from common import *
 from net.lib.roi_align_pool_tf.module import RoIAlign as Crop
-from .configuration import *
-from .layer.rpn_multi_nms     import *
 from .layer.rpn_multi_target  import *
 from .layer.rpn_multi_loss    import *
-from .layer.rcnn_nms     import *
 from .layer.rcnn_target  import *
 from .layer.rcnn_loss    import *
 from .layer.mask_nms    import *
@@ -12,23 +8,6 @@ from .layer.mask_target import *
 from .layer.mask_loss   import *
 
 
-# P layers ## ---------------------------
-class LateralBlock(nn.Module):
-    def __init__(self, c_planes, p_planes, out_planes ):
-        super(LateralBlock, self).__init__()
-        self.lateral = nn.Conv2d(c_planes,  p_planes,   kernel_size=1, padding=0, stride=1)
-        self.top     = nn.Conv2d(p_planes,  out_planes, kernel_size=3, padding=1, stride=1)
-
-    def forward(self, c , p):
-        _,_,H,W = c.size()
-        c = self.lateral(c)
-        p = F.upsample(p, scale_factor=2,mode='nearest')
-        p = p[:,:,:H,:W] + c
-        p = self.top(p)
-
-        return p
-
-## C layers ## ---------------------------
 class BottleneckBlock(nn.Module):
     def __init__(self, in_planes, planes, out_planes, is_downsample=False, stride=1):
         super(BottleneckBlock, self).__init__()
@@ -79,11 +58,27 @@ def make_layer_c(in_planes, planes, out_planes, num_blocks, stride):
     return nn.Sequential(*layers)
 
 
+class LateralBlock(nn.Module):
+    def __init__(self, c_planes, p_planes, out_planes ):
+        super(LateralBlock, self).__init__()
+        self.lateral = nn.Conv2d(c_planes,  p_planes,   kernel_size=1, padding=0, stride=1)
+        self.top     = nn.Conv2d(p_planes,  out_planes, kernel_size=3, padding=1, stride=1)
+
+    def forward(self, c , p):
+        _,_,H,W = c.size()
+        c = self.lateral(c)
+        p = F.upsample(p, scale_factor=2,mode='nearest')
+        p = p[:,:,:H,:W] + c
+        p = self.top(p)
+
+        return p
+
+
 class FeatureNet(nn.Module):
 
     def __init__(self, cfg, in_channels, out_channels=256 ):
         super(FeatureNet, self).__init__()
-        self.cfg=cfg
+        self.cfg = cfg
 
         # bottom-top
         self.layer_c0 = make_layer_c0(in_channels, 64)
@@ -100,26 +95,24 @@ class FeatureNet(nn.Module):
         self.layer_p1 = LateralBlock(  256, out_channels, out_channels)
 
     def forward(self, x):
-        #pass                        #; print('input ',   x.size())
-        c0 = self.layer_c0 (x)       #; print('layer_c0 ',c0.size())
-                                     #
-        c1 = self.layer_c1(c0)       #; print('layer_c1 ',c1.size())
-        c2 = self.layer_c2(c1)       #; print('layer_c2 ',c2.size())
-        c3 = self.layer_c3(c2)       #; print('layer_c3 ',c3.size())
-        c4 = self.layer_c4(c3)       #; print('layer_c4 ',c4.size())
+        c0 = self.layer_c0(x)
 
-        p4 = self.layer_p4(c4)       #; print('layer_p4 ',p4.size())
-        p3 = self.layer_p3(c3, p4)   #; print('layer_p3 ',p3.size())
-        p2 = self.layer_p2(c2, p3)   #; print('layer_p2 ',p2.size())
-        p1 = self.layer_p1(c1, p2)   #; print('layer_p1 ',p1.size())
+        c1 = self.layer_c1(c0)
+        c2 = self.layer_c2(c1)
+        c3 = self.layer_c3(c2)
+        c4 = self.layer_c4(c3)
 
-        features = [p1,p2,p3,p4]
+        p4 = self.layer_p4(c4)
+        p3 = self.layer_p3(c3, p4)
+        p2 = self.layer_p2(c2, p3)
+        p1 = self.layer_p1(c1, p2)
+
+        features = [p1, p2, p3, p4]
         assert(len(self.cfg.rpn_scales) == len(features))
 
         return features
 
 
-# various head ##########################################
 class RpnMultiHead(nn.Module):
 
     def __init__(self, cfg, in_channels):
@@ -150,9 +143,9 @@ class RpnMultiHead(nn.Module):
         batch_size = len(fs[0])
 
         logits_flat = []
-        probs_flat  = []
         deltas_flat = []
-        for l in range(self.num_scales):  # apply multibox head to feature maps
+        # apply multibox head to feature maps
+        for l in range(self.num_scales):
             f = fs[l]
             f = F.relu(self.convs[l](f))
 
@@ -359,7 +352,7 @@ class MaskRcnnNet(nn.Module):
                                  truth_labels,
                                  truth_instances)
 
-        #segmentation  -------------------------------------------
+        # segmentation  -------------------------------------------
         self.detections = self.rcnn_proposals
         self.masks      = make_empty_masks(cfg, mode, inputs)
 
@@ -386,7 +379,6 @@ class MaskRcnnNet(nn.Module):
                       self.rcnn_labels,
                       self.rcnn_targets)
 
-        ## self.mask_cls_loss = Variable(torch.cuda.FloatTensor(1).zero_()).sum()
         self.mask_cls_loss  = \
             mask_loss(self.mask_logits,
                       self.mask_labels,
@@ -400,9 +392,8 @@ class MaskRcnnNet(nn.Module):
 
         return self.total_loss
 
-
     #<todo> freeze bn for imagenet pretrain
-    def set_mode(self, mode ):
+    def set_mode(self, mode):
         self.mode = mode
         if mode in ['eval', 'valid', 'test']:
             self.eval()
@@ -422,8 +413,3 @@ class MaskRcnnNet(nn.Module):
             state_dict[key] = pretrain_state_dict[key]
 
         self.load_state_dict(state_dict)
-        #raise NotImplementedError
-
-
-
-
