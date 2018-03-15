@@ -130,7 +130,7 @@ def run_train():
 
     # optimiser -------------------------------------------------
     optimizer = optim.SGD(filter(lambda p: p.requires_grad, net.parameters()),
-                          lr=0.01/cfg.iter_accum,
+                          lr=cfg.lr/cfg.iter_accum,
                           momentum=0.9,
                           weight_decay=0.0001
                           )

@@ -1,6 +1,6 @@
 import os
 # edit settings here
-ROOT_DIR = '/root/kaggle'
+ROOT_DIR = '/root/xiaoxuan/kaggle'
 
 DATA_DIR     = os.path.join(ROOT_DIR, 'data')
 SPLIT_DIR    = os.path.join(DATA_DIR, 'split')
@@ -28,6 +28,7 @@ import torchvision.transforms as transforms
 from torch.utils.data.dataset import Dataset
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import *
+from torch.nn import init
 
 import torch.nn as nn
 import torch.nn.functional as F

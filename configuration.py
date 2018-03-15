@@ -74,18 +74,19 @@ class Configuration(object):
         self.mask_test_mask_threshold  = 0.5
 
         # annotation
-        self.annotation_train_split = 'train1_ids_all_670'
-        self.annotation_test_split = 'test1_ids_all_65'
+        self.annotation_train_split = 'train_ids_all_670'
+        self.annotation_test_split = 'test_ids_all_65'
 
         # training --------------------------------------------------------------
         self.model_name = 'mask-rcnn-50-gray500-02'
-        self.train_split = 'train1_ids_gray2_500'
-        self.valid_split = 'valid1_ids_gray2_43'
+        self.train_split = 'train_ids_gray_500'
+        self.valid_split = 'valid_ids_gray_43'
         self.pretrain = None
         self.checkpoint = None
 
         # optim -----------------------------------------------------------------
-        self.iter_accum = 1  # learning rate = 0.01/iter_accum
+        self.lr = 0.01
+        self.iter_accum = 1  # learning rate = lr/iter_accum
         self.batch_size = 16
         self.num_iters = 1000 * 1000
         self.iter_smooth = 20  # calculate smoothed loss over each 20 iter
@@ -95,11 +96,11 @@ class Configuration(object):
 
         # validation  -----------------------------------------------------------
         self.valid_checkpoint = '0004600_model.pth'
-        self.valid_split = 'test1_ids_gray2_53'
+        self.valid_split = 'test_ids_gray2_53'
 
         # submit ----------------------------------------------------------------
         self.submit_checkpoint = '0004600_model.pth'
-        self.submit_split = 'test1_ids_gray2_53'
+        self.submit_split = 'test_ids_gray2_53'
         self.submit_csv_name = 'submission-gray53-only.csv'
 
     def __repr__(self):
