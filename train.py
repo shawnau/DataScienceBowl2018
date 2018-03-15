@@ -12,7 +12,7 @@ WIDTH, HEIGHT = 256, 256
 class TrainFolder:
     def __init__(self, model_name):
         self.work_dir = os.path.join(RESULTS_DIR, model_name)
-        self.checkpoint_dir = os.path.join(self.work_dir, 'checkpoint_dir')
+        self.checkpoint_dir = os.path.join(self.work_dir, 'checkpoint')
         self.train_result = os.path.join(self.work_dir, 'train')
         self.backup = os.path.join(self.work_dir, 'backup')
 

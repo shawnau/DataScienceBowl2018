@@ -132,7 +132,6 @@ def run_evaluate():
         with torch.no_grad():
             inputs = Variable(inputs).cuda()
             net(inputs, truth_boxes,  truth_labels, truth_instances)
-
         # save results ---------------------------------------
         revert(net, images)
 
@@ -189,18 +188,18 @@ def run_evaluate():
             all7 = draw_mask_metric(cfg, image, mask,
                                     truth_box, truth_label, truth_instance)
 
-            cv2.imwrite(os.path.join(work_dir, 'evaluate', 'overlays', '%s.png' % id), all1)
-            cv2.imwrite(os.path.join(work_dir, 'evaluate', 'overlays', '%s.png' % id), all6)
-            cv2.imwrite(os.path.join(work_dir, 'evaluate', 'overlays', '%s.png' % id), all7)
+            cv2.imwrite(os.path.join(work_dir, 'evaluate', 'overlays', '%s.png' % name), all1)
+            cv2.imwrite(os.path.join(work_dir, 'evaluate', 'overlays', '%s.png' % name), all6)
+            cv2.imwrite(os.path.join(work_dir, 'evaluate', 'overlays', '%s.png' % name), all7)
 
         # print statistics  ------------
-        test_acc += 0 #batch_size*acc[0][0]
-        test_loss += batch_size*np.array((
-                           net.loss.cpu().data.numpy(),
-                           net.rpn_cls_loss.cpu().data.numpy(),
-                           net.rpn_reg_loss.cpu().data.numpy(),
-                            0,0,
-                         ))
+        # test_acc += 0 #batch_size*acc[0][0]
+        # test_loss += batch_size*np.array((
+        #                    net.total_loss.cpu().data.numpy(),
+        #                    net.rpn_cls_loss.cpu().data.numpy(),
+        #                    net.rpn_reg_loss.cpu().data.numpy(),
+        #                     0,0,
+        #                  ))
         test_num += batch_size
 
     # assert(test_num == len(test_loader.sampler))
@@ -225,3 +224,4 @@ if __name__ == '__main__':
     print( '%s: calling main function ... ' % os.path.basename(__file__))
     run_evaluate()
     print('\nsucess!')
+
