@@ -1,5 +1,5 @@
 from dataset.annotate import *
-from net.resnet50_mask_rcnn.draw import *
+from net.draw import *
 
 sys.path.append(os.path.dirname(__file__))
 from train import *

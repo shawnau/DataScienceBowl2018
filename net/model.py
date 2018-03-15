@@ -1,11 +1,16 @@
-from net.lib.roi_align_pool_tf.module import RoIAlign as Crop
-from .layer.rpn_multi_target  import *
-from .layer.rpn_multi_loss    import *
-from .layer.rcnn_target  import *
-from .layer.rcnn_loss    import *
-from .layer.mask_nms    import *
-from .layer.mask_target import *
-from .layer.mask_loss   import *
+from net.layer.roi_align_pool_tf.module import RoIAlign as Crop
+
+from net.layer.rpn_multi_target import *
+from net.layer.rpn_multi_loss import *
+from net.layer.rpn_multi_nms import *
+
+from net.layer.rcnn_target import *
+from net.layer.rcnn_loss import *
+from net.layer.rcnn_nms import *
+
+from net.layer.mask_target import *
+from net.layer.mask_loss import *
+from net.layer.mask_nms import *
 
 
 class BottleneckBlock(nn.Module):
@@ -220,6 +225,7 @@ class CropRoi(nn.Module):
         indices = torch.cat(indices,0).view(-1)
         crops   = crops[torch.sort(indices)[1]]
         # crops = torch.index_select(crops,0,index)
+
         return crops
 
 

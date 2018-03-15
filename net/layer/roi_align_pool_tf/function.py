@@ -1,4 +1,4 @@
-from net.lib.roi_align_pool_tf.extension import *
+from net.layer.roi_align_pool_tf.extension import *
 
 import math
 import torch

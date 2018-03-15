@@ -1,7 +1,7 @@
 from dataset.reader import multi_mask_to_annotation
 from dataset.transform import *
 
-from net.resnet50_mask_rcnn.draw import *
+from net.draw import *
 
 
 def check_make_one_rpn_target(input, window, truth_box, truth_label,

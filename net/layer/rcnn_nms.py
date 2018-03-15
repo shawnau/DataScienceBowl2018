@@ -1,4 +1,4 @@
-from net.lib.box.process import*
+from net.lib.box.process import *
 
 
 # faster-rcnn box encode/decode

@@ -1,4 +1,5 @@
-from net.resnet50_mask_rcnn.model import *
+from net.model import *
+from configuration import Configuration
 
 
 def run_check_feature_net():

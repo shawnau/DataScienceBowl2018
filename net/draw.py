@@ -4,14 +4,13 @@ from net.metric import *
 
 if __name__ == '__main__':
     from configuration import *
-    from .layer.rpn_multi_nms     import *
-    from .layer.rpn_multi_target  import *
-    from .layer.rpn_multi_loss    import *
+    from net.layer.rpn_multi_nms import *
+    from net.layer.rpn_multi_target import *
 else:
     from configuration import *
-    from .layer.rpn_multi_nms    import *
-    from .layer.rpn_multi_target import *
-    from .layer.rpn_multi_loss   import *
+    from net.layer.rpn_multi_nms import *
+    from net.layer.rpn_multi_target import *
+
 
 # rpn-------------------------------------------
 def unflat_to_c3(data, num_bases, scales, H, W):

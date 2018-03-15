@@ -1,8 +1,8 @@
 from dataset.transform import *
 from dataset.reader import *
 from net.scheduler import *
-from net.resnet50_mask_rcnn.model import *
 from configuration import Configuration
+from net.model import MaskRcnnNet
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'  #'3,2' #'3,2,1,0'
 
 
@@ -189,7 +189,7 @@ def run_train():
     log.write(' lr_scheduler=%s\n\n' % str(lr_scheduler))
 
     log.write(' images_per_epoch = %d\n\n' % len(train_dataset))
-    log.write(' rate    iter   epoch  num   | valid_loss rpnc rpnr rcnnc rcnnr mask | train_loss rpnc rpnr rcnnc rcnnr mask | batch_loss _loss rpnc rpnr rcnnc rcnnr mask |  time          \n')
+    log.write(' rate    iter   epoch  num   | valid_loss rpnc rpnr rcnnc rcnnr mask | train_loss rpnc rpnr rcnnc rcnnr mask | batch_loss rpnc rpnr rcnnc rcnnr mask |  time          \n')
     log.write('-------------------------------------------------------------------------------------------------------------------------------------------------------------------\n')
 
     train_loss  = np.zeros(6,np.float32)
