@@ -70,3 +70,50 @@ results
             <npys>
         <log.train.txt>
 ```
+
+---
+
+## 安装shadowsocks-libev 客户端
+
+```bash
+apt-get install software-properties-common -y
+add-apt-repository ppa:max-c-lv/shadowsocks-libev -y
+apt-get update
+apt install shadowsocks-libev
+```
+
+编辑配置文件:
+```
+vim /etc/shadowsocks-libev/config.json
+
+{  
+ "server":"ss5.gogosu.xyz",  
+ "server_port":64220,  
+ "local_port":1080,  
+ "password":"j36EWk",  
+ "timeout":60,  
+ "method":"aes-256-gcm",   
+}
+```
+启动
+```
+systemctl start shadowsocks-libev-local@config
+```
+
+## 安装proxychains-ng
+```
+git clone https://github.com/rofl0r/proxychains-ng.git
+cd proxychains-ng
+./configure --prefix=/usr --sysconfdir=/etc
+make
+make install
+make install-config
+```
+打开配置文件
+```
+vim /etc/proxychains.conf
+```
+把最后一行改成
+```
+socks5 127.0.0.1 1080
+```
