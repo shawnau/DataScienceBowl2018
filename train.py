@@ -299,9 +299,9 @@ def run_train():
 
     # save last
     if 1:
-        model_config_path = os.path.join(f.work_dir, 'checkpoint_dir', 'configuration.pkl')
-        model_path = os.path.join(f.work_dir, 'checkpoint_dir', '%d_model.pth'%i)
-        optimizer_path = os.path.join(f.work_dir, 'checkpoint_dir', '%08d_optimizer.pth'%i)
+        model_config_path = os.path.join(f.work_dir, 'checkpoint', 'configuration.pkl')
+        model_path = os.path.join(f.work_dir, 'checkpoint', '%d_model.pth'%i)
+        optimizer_path = os.path.join(f.work_dir, 'checkpoint', '%08d_optimizer.pth'%i)
 
         torch.save(net.state_dict(), model_path)
         torch.save({
