@@ -1,4 +1,5 @@
 from common import *
+from net.scheduler import StepLR
 import configparser
 
 
@@ -79,6 +80,8 @@ class Configuration(object):
 
         # training --------------------------------------------------------------
         self.model_name = 'mask-rcnn-50-gray500-02'
+        self.model_name = '3-16'
+
         self.train_split = 'train_ids_gray_500'
         self.valid_split = 'valid_ids_gray_43'
         self.pretrain = None
@@ -92,15 +95,14 @@ class Configuration(object):
         self.iter_smooth = 20  # calculate smoothed loss over each 20 iter
         self.iter_valid = 100
         self.iter_save = list(range(0, self.num_iters, 500)) + [self.num_iters]
-        self.lr_scheduler = None  # lr_scheduler = StepLR([ (0, 0.01),  (200, 0.001),  (300, -1)])
+        self.lr_scheduler =  StepLR([ (0, 0.01),  (5000, 0.001),  (10000, 0.001)])
 
         # validation  -----------------------------------------------------------
         self.valid_checkpoint = '0004600_model.pth'
-        self.valid_split = 'test_ids_gray2_53'
 
         # submit ----------------------------------------------------------------
         self.submit_checkpoint = '0004600_model.pth'
-        self.submit_split = 'test_ids_gray2_53'
+        self.submit_split = 'test_ids_gray_53'
         self.submit_csv_name = 'submission-gray53-only.csv'
 
     def __repr__(self):
