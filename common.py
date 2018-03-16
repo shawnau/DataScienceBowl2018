@@ -1,6 +1,6 @@
 import os
 # edit settings here
-ROOT_DIR = '/root/kaggle'
+ROOT_DIR = '/root/xiaoxuan/kaggle'
 
 DATA_DIR     = os.path.join(ROOT_DIR, 'data')
 SPLIT_DIR    = os.path.join(DATA_DIR, 'split')

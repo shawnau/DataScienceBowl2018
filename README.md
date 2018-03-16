@@ -3,25 +3,7 @@
 ## Build
 
 ```bash
-cd mask-rcnn-resnet50-ver-01/net/lib/box/nms/torch_nms/src/
-nvcc -c -o nms_kernel.cu.o nms_kernel.cu -x cu -Xcompiler -fPIC -arch=sm_60
-cd ..
-python build.py
-
-cd ../../../roi_align_pool_tf/src/
-nvcc -c -o crop_and_resize_kernel.cu.o crop_and_resize_kernel.cu -x cu -Xcompiler -fPIC -arch=sm_60
-cd ..
-python build.py
-
-cd ../box/nms/cython_nms/
-python setup.py build_ext --inplace
-
-cd ../gpu_nms/
-python setup.py build_ext --inplace
-# move .so to this folder?
-
-cd ../../overlap/cython_overlap/
-python setup.py build_ext --inplace
+./build_layers.sh
 ```
 
 ## Use
