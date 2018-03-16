@@ -378,14 +378,6 @@ class MaskRcnnNet(nn.Module):
         self.mask_crop   = CropRoi  (cfg, cfg.mask_crop_size)
         self.mask_head   = MaskHead (cfg, crop_channels)
 
-        for key in self.state_dict():
-            if key.split('.')[-1] == 'weight':
-                if 'conv' in key:
-                    init.kaiming_normal(self.state_dict()[key], mode='fan_in')
-                if 'bn' in key:
-                    self.state_dict()[key][...] = 1
-            elif key.split('.')[-1] == 'bias':
-                self.state_dict()[key][...] = 0
 
     def forward(self, inputs, truth_boxes=None,  truth_labels=None, truth_instances=None ):
         cfg  = self.cfg
