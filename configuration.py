@@ -14,7 +14,7 @@ class Configuration(object):
         self.num_classes = 2
 
         # multi-rpn  --------------------------------------------------------
-        # base size of the anchor box on imput image (2*a, diameter?)
+        # base size of the anchor box on input image (2*a, diameter?)
         self.rpn_base_sizes = [8, 16, 32, 64]
         # 4 dirrerent zoom scales from each feature map to input.
         # used to get stride of anchor boxes
@@ -23,18 +23,21 @@ class Configuration(object):
         self.rpn_scales = [2, 4, 8, 16]
 
         aspect = lambda s,x: (s*1/x**0.5,s*x**0.5)
-        # self.rpn_base_apsect_ratios = [
-        #     [(1,1) ],
-        #     [(1,1),                    aspect(2**0.33,2), aspect(2**0.33,0.5),],
-        #     [(1,1), aspect(2**0.66,1), aspect(2**0.33,2), aspect(2**0.33,0.5),aspect(2**0.33,3), aspect(2**0.33,0.33),  ],
-        #     [(1,1), aspect(2**0.66,1), aspect(2**0.33,2), aspect(2**0.33,0.5),],
-        # ]
+        # for slim cells
         self.rpn_base_apsect_ratios = [
-            [(1,1) ],
-            [(1,1), aspect(2**0.5,2), aspect(2**0.5,0.5),],
-            [(1,1), aspect(2**0.5,2), aspect(2**0.5,0.5),],
-            [(1,1), aspect(2**0.5,2), aspect(2**0.5,0.5),],
+            [(1, 1)],
+            [(1, 1), aspect(2 ** 0.25, 2), aspect(2 ** 0.25, 0.5), ],
+            [(1, 1), aspect(2 ** 0.5, 1), aspect(2 ** 0.25, 2), aspect(2 ** 0.25, 0.5), aspect(2 ** 0.25, 3),
+             aspect(2 ** 0.25, 0.25), ],
+            [(1, 1), aspect(2 ** 0.5, 1), aspect(2 ** 0.25, 2), aspect(2 ** 0.25, 0.5), ],
         ]
+
+        #self.rpn_base_apsect_ratios = [
+        #    [(1,1) ],
+        #    [(1,1), aspect(2**0.5,2), aspect(2**0.5,0.5),],
+        #    [(1,1), aspect(2**0.5,2), aspect(2**0.5,0.5),],
+        #    [(1,1), aspect(2**0.5,2), aspect(2**0.5,0.5),],
+        #]
 
         self.rpn_train_bg_thresh_high = 0.5
         self.rpn_train_fg_thresh_low  = 0.5
@@ -64,9 +67,9 @@ class Configuration(object):
         self.rcnn_test_nms_min_size = 5
 
         # mask ------------------------------------------------------------------
-        self.mask_crop_size            = 14
+        self.mask_crop_size            = 14  # input of mask head
         self.mask_train_batch_size     = 64  # per image
-        self.mask_size                 = 28  # per image
+        self.mask_size                 = 28  # out put of mask head
         self.mask_train_min_size       = 5
         self.mask_train_fg_thresh_low  = self.rpn_train_fg_thresh_low
 
@@ -80,10 +83,10 @@ class Configuration(object):
 
         # training --------------------------------------------------------------
         self.model_name = 'mask-rcnn-50-gray500-02'
-        self.model_name = '3-16'
+        self.model_name = '3-17'
 
-        self.train_split = 'train_ids_gray_500'
-        self.valid_split = 'valid_ids_gray_43'
+        self.train_split = 'train_ids_color_mixed_113'
+        self.valid_split = 'valid_ids_color_43'
         self.pretrain = None
         self.checkpoint = None
 
@@ -94,20 +97,20 @@ class Configuration(object):
         self.num_iters = 1000 * 1000
         self.iter_smooth = 20  # calculate smoothed loss over each 20 iter
         self.iter_valid = 100
-        self.iter_save = list(range(0, self.num_iters, 500)) + [self.num_iters]
-        self.lr_scheduler =  StepLR([ (0, 0.01),  (5000, 0.001),  (10000, 0.001)])
+        self.iter_save = list(range(0, self.num_iters, 1000)) + [self.num_iters]
+        self.lr_scheduler = None # StepLR([ (0, 0.01),  (5000, 0.001),  (10000, 0.001)])
 
         # validation  -----------------------------------------------------------
-        self.valid_checkpoint = '0004600_model.pth'
+        self.valid_checkpoint = '00004600_model.pth'
 
         # submit ----------------------------------------------------------------
-        self.submit_checkpoint = '0004600_model.pth'
-        self.submit_split = 'test_ids_gray_53'
-        self.submit_csv_name = 'submission-gray53-only.csv'
+        self.submit_checkpoint = '00004600_model.pth'
+        self.submit_split = 'test_ids_color_12'
+        self.submit_csv_name = 'submission-color12-only.csv'
 
     def __repr__(self):
         d = self.__dict__.copy()
-        str=''
+        str = ''
         for k, v in d.items():
             str += '%32s = %s\n' % (k,v)
 

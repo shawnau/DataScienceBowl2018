@@ -402,7 +402,7 @@ class MaskRcnnNet(nn.Module):
 
         #rcnn proposals ------------------------------------------------
         self.rcnn_proposals = self.rpn_proposals
-        if len(self.rpn_proposals)>0:
+        if len(self.rpn_proposals) > 0:
             rcnn_crops = self.rcnn_crop(features, self.rpn_proposals)
             self.rcnn_logits, self.rcnn_deltas = data_parallel(self.rcnn_head, rcnn_crops)
             self.rcnn_proposals = rcnn_nms(cfg, mode, inputs, self.rpn_proposals,  self.rcnn_logits, self.rcnn_deltas)
@@ -428,17 +428,17 @@ class MaskRcnnNet(nn.Module):
         cfg  = self.cfg
 
         self.rpn_cls_loss, self.rpn_reg_loss = \
-           rpn_loss( self.rpn_logits_flat, self.rpn_deltas_flat, self.rpn_labels, self.rpn_label_weights, self.rpn_targets, self.rpn_target_weights)
+           rpn_loss(self.rpn_logits_flat, self.rpn_deltas_flat, self.rpn_labels, self.rpn_label_weights, self.rpn_targets, self.rpn_target_weights)
 
         self.rcnn_cls_loss, self.rcnn_reg_loss = \
             rcnn_loss(self.rcnn_logits, self.rcnn_deltas, self.rcnn_labels, self.rcnn_targets)
 
         ## self.mask_cls_loss = Variable(torch.cuda.FloatTensor(1).zero_()).sum()
         self.mask_cls_loss  = \
-             mask_loss( self.mask_logits, self.mask_labels, self.mask_instances )
+             mask_loss(self.mask_logits, self.mask_labels, self.mask_instances)
 
         self.total_loss = self.rpn_cls_loss + self.rpn_reg_loss \
-                          + self.rcnn_cls_loss +  self.rcnn_reg_loss \
+                          + self.rcnn_cls_loss + self.rcnn_reg_loss \
                           + self.mask_cls_loss
 
         return self.total_loss

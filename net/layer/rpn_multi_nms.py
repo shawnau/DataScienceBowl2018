@@ -31,7 +31,7 @@ def make_bases(base_size, base_apsect_ratios):
         base =(-rw, -rh, rw, rh, )
         bases.append(base)
 
-    bases = np.array(bases,np.float32)
+    bases = np.array(bases, np.float32)
     return bases
 
 
@@ -51,13 +51,13 @@ def make_windows(f, scale, bases):
     :return:
         list of anchor boxes on input image
     """
-    windows  = []
+    windows = []
     _, _, H, W = f.size()
     for y, x in itertools.product(range(H),range(W)):
         cx = x*scale
         cy = y*scale
         for b in bases:
-            x0,y0,x1,y1 = b
+            x0, y0, x1, y1 = b
             x0 += cx
             y0 += cy
             x1 += cx
@@ -70,7 +70,7 @@ def make_windows(f, scale, bases):
 
 def make_rpn_windows(cfg, fs):
     """
-    create region proposals from all 4 feature maps to original image
+    create region proposals from all 4 feature maps on original image
     """
     rpn_windows = []
     num_scales = len(cfg.rpn_scales)

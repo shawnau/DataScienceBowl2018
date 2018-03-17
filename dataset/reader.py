@@ -16,7 +16,14 @@ class ScienceDataset(Dataset):
     """
     train mode:
         :return:
-        image, multi_mask, meta, index
+        image: (H, W, C) numpy array
+        multi_mask: a map records masks. e.g.
+            [[0, 1, 1, 0],
+             [2, 0, 0, 3],
+             [2, 0, 3, 3]]
+            for 3 masks in a 4*4 input
+        meta: not used
+        index: index of the image (unique)
     """
     def __init__(self, split, transform=None, mode='train'):
         super(ScienceDataset, self).__init__()
@@ -73,9 +80,9 @@ def multi_mask_to_annotation(multi_mask):
             [[x0, y0, x1, y1], ...]
         label: currently all labels are 1 (for foreground only)
         instance: list of one vs all masks. e.g.
-            [[0, 1, 1, 0],
-             [0, 0, 0, 0],
-             [0, 0, 0, 0]]
+            [[[0, 1, 1, 0],
+              [0, 0, 0, 0],
+              [0, 0, 0, 0]], ...]
             for thr first mask of all masks, a total of 3 lists in this case
     """
     H,W      = multi_mask.shape[:2]
