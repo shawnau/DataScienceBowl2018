@@ -82,11 +82,10 @@ class Configuration(object):
         self.annotation_test_split = 'test_ids_all_65'
 
         # training --------------------------------------------------------------
-        self.model_name = 'mask-rcnn-50-gray500-02'
-        self.model_name = '3-17'
+        self.model_name = '3-18'
 
-        self.train_split = 'train_ids_color_mixed_113'
-        self.valid_split = 'valid_ids_color_43'
+        self.train_split = 'train_color_87'
+        self.valid_split = 'valid_color_20'
         self.pretrain = None
         self.checkpoint = None
 
@@ -101,12 +100,11 @@ class Configuration(object):
         self.lr_scheduler = None # StepLR([ (0, 0.01),  (5000, 0.001),  (10000, 0.001)])
 
         # validation  -----------------------------------------------------------
-        self.valid_checkpoint = '00004600_model.pth'
-
+        self.valid_checkpoint = None
         # submit ----------------------------------------------------------------
-        self.submit_checkpoint = '00004600_model.pth'
-        self.submit_split = 'test_ids_color_12'
-        self.submit_csv_name = 'submission-color12-only.csv'
+        self.submit_checkpoint = None
+        self.submit_split = 'test_color_4'
+        self.submit_csv_name = 'submission-color4-only.csv'
 
     def __repr__(self):
         d = self.__dict__.copy()
