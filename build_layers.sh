@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 cd net/lib/box/nms/torch_nms/src/
 nvcc -c -o nms_kernel.cu.o nms_kernel.cu -x cu -Xcompiler -fPIC -arch=sm_60
 cd ..

@@ -283,7 +283,9 @@ def run_submit():
 def run_npy_to_sumbit_csv():
     cfg = Configuration()
     # load data from image directory
-    image_dir = os.path.join(DATA_DIR, 'image', 'stage1_test', 'images')
+    ids = read_list_from_file(os.path.join(SPLIT_DIR, cfg.submit_split), comment='#')
+    folder = ids[0].split('/')[0]
+    image_dir = os.path.join(DATA_DIR, 'image', folder, 'images')
     # load masks from submit directory
     submit_dir = os.path.join(RESULTS_DIR, cfg.model_name, 'submit')
     npy_dir = os.path.join(submit_dir, 'npys')
