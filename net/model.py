@@ -127,7 +127,8 @@ class MaskRcnnNet(nn.Module):
 
         keys = list(state_dict.keys())
         for key in keys:
-            if any(s in key for s in skip): continue
+            if any(s in key for s in skip):
+                continue
             state_dict[key] = pretrain_state_dict[key]
 
         self.load_state_dict(state_dict)
