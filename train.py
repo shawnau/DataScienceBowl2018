@@ -1,27 +1,14 @@
+from dataset.folder import TrainFolder
 from dataset.transform import *
 from dataset.reader import *
-from net.scheduler import *
+from utility.file import *
+from utility.scheduler import *
 from configuration import Configuration
 from net.model import MaskRcnnNet
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'  #'3,2' #'3,2,1,0'
 
 
 WIDTH, HEIGHT = 256, 256
-
-
-class TrainFolder:
-    def __init__(self, model_name):
-        self.work_dir = os.path.join(RESULTS_DIR, model_name)
-        self.checkpoint_dir = os.path.join(self.work_dir, 'checkpoint')
-        self.train_result = os.path.join(self.work_dir, 'train')
-        self.backup = os.path.join(self.work_dir, 'backup')
-
-        os.makedirs(self.work_dir, exist_ok=True)
-        os.makedirs(self.checkpoint_dir, exist_ok=True)
-        os.makedirs(self.train_result, exist_ok=True)
-        os.makedirs(self.backup, exist_ok=True)
-        backup_project_as_zip(PROJECT_PATH, os.path.join(self.work_dir, 'backup', 'code.train.%s.zip' % IDENTIFIER))
-
 
 def train_augment(image, multi_mask, meta, index):
 
@@ -47,7 +34,7 @@ def train_augment(image, multi_mask, meta, index):
 
 def valid_augment(image, multi_mask, meta, index):
 
-    image,  multi_mask = fix_crop_transform(image, multi_mask, -1, -1, WIDTH, HEIGHT)
+    image, multi_mask = fix_crop_transform(image, multi_mask, -1, -1, WIDTH, HEIGHT)
     input_image = torch.from_numpy(image.transpose((2,0,1))).float().div(255)
     box, label, instance  = multi_mask_to_annotation(multi_mask)
 
@@ -70,46 +57,44 @@ def make_collate(batch):
 def validate(net, test_loader):
 
     test_num  = 0
-    test_loss = np.zeros(4, np.float32)
-    test_acc  = 0
+    test_loss = np.zeros(6, np.float32)
+
     for i, (inputs, truth_boxes, truth_labels, truth_instances, metas, indices) in enumerate(test_loader, 0):
 
         with torch.no_grad():
             inputs = Variable(inputs).cuda()
-            net(inputs, truth_boxes,  truth_labels, truth_instances)
+            net(inputs, truth_boxes, truth_labels, truth_instances)
             loss = net.loss()
 
-        # acc = dice_loss(masks, labels) #todo
-
         batch_size = len(indices)
-        test_acc  += 0  # batch_size*acc[0][0]
         test_loss += batch_size*np.array((
                            loss.cpu().data.numpy(),
                            net.rpn_cls_loss.cpu().data.numpy(),
                            net.rpn_reg_loss.cpu().data.numpy(),
-                           net.mask_cls_loss.cpu().data.numpy()
+                           net.rcnn_cls_loss.cpu().data.numpy(),
+                           net.rcnn_reg_loss.cpu().data.numpy(),
+                           net.mask_cls_loss.cpu().data.numpy(),
                          ))
         test_num  += batch_size
 
     assert(test_num == len(test_loader.sampler))
-    test_acc  = test_acc/test_num
     test_loss = test_loss/test_num
-    return test_loss, test_acc
+    return test_loss
 
 
 def run_train():
 
     cfg = Configuration()
-    f = TrainFolder(cfg.model_name)
+    f = TrainFolder(os.path.join(cfg.result_dir, cfg.model_name))
     skip = ['crop', 'mask']
 
     log = Logger()
-    log.open(os.path.join(f.work_dir, 'log.train.txt'), mode='a')
+    log.open(os.path.join(f.folder_name, 'log.train.txt'), mode='a')
     log.write('\n--- [START %s] %s\n\n' % (IDENTIFIER, '-' * 64))
     log.write('** some experiment setting **\n')
     log.write('\tSEED         = %u\n' % SEED)
     log.write('\tPROJECT_PATH = %s\n' % PROJECT_PATH)
-    log.write('\tout_dir      = %s\n' % f.work_dir)
+    log.write('\tout_dir      = %s\n' % f.folder_name)
     log.write('\n')
 
     # net -------------------------------------------------
@@ -137,6 +122,7 @@ def run_train():
                           momentum=0.9,
                           weight_decay=0.0001
                           )
+    
     lr_scheduler = cfg.lr_scheduler
 
     start_iter  = 0
@@ -153,7 +139,7 @@ def run_train():
 
     # dataset -------------------------------------------------
     log.write('** dataset setting **\n')
-    train_dataset = ScienceDataset(cfg.train_split, mode='train', transform=train_augment)
+    train_dataset = ScienceDataset(cfg, cfg.train_split, mode='train', transform=train_augment)
     train_loader  = DataLoader(
                         train_dataset,
                         sampler=RandomSampler(train_dataset),
@@ -163,7 +149,7 @@ def run_train():
                         pin_memory=True,
                         collate_fn=make_collate)
 
-    valid_dataset = ScienceDataset(cfg.valid_split, mode='train', transform=valid_augment)
+    valid_dataset = ScienceDataset(cfg, cfg.valid_split, mode='train', transform=valid_augment)
     valid_loader  = DataLoader(
                         valid_dataset,
                         sampler=SequentialSampler(valid_dataset),
@@ -188,19 +174,16 @@ def run_train():
     # start training here! -------------------------------------------------
     log.write('** start training here! **\n')
     log.write(' optimizer=%s\n' % str(optimizer))
-    log.write(' momentum=%f\n' % optimizer.param_groups[0]['momentum'])
+    # log.write(' momentum=%f\n' % optimizer.param_groups[0]['momentum'])
     log.write(' lr_scheduler=%s\n\n' % str(lr_scheduler))
 
     log.write(' images_per_epoch = %d\n\n' % len(train_dataset))
-    log.write(' rate    iter   epoch  num   | valid_loss rpnc rpnr mask | train_loss rpnc rpnr mask | batch_loss rpnc rpnr mask |  time          \n')
+    log.write(' rate    iter   epoch  num   | valid_loss rpnc rpnr rcnnc rcnnr mask | train_loss rpnc rpnr rcnnc rcnnr mask | batch_loss rpnc rpnr rcnnc rcnnr mask |  time          \n')
     log.write('-------------------------------------------------------------------------------------------------------------------------------------------------------------------\n')
 
-    train_loss  = np.zeros(4,np.float32)
-    train_acc   = 0.0
-    valid_loss  = np.zeros(4,np.float32)
-    valid_acc   = 0.0
-    batch_loss  = np.zeros(4,np.float32)
-    batch_acc   = 0.0
+    train_loss  = np.zeros(6,np.float32)
+    valid_loss  = np.zeros(6,np.float32)
+    batch_loss  = np.zeros(6,np.float32)
     rate = 0
 
     start = timer()
@@ -208,9 +191,9 @@ def run_train():
     i = 0  # iter  counter
 
     while i < cfg.num_iters:  # loop over the dataset multiple times
-        sum_train_loss = np.zeros(4,np.float32)
+        sum_train_loss = np.zeros(6,np.float32)
         sum_train_acc  = 0.0
-        sum = 0
+        batch_sum = 0
 
         net.set_mode('train')
         optimizer.zero_grad()
@@ -224,15 +207,15 @@ def run_train():
             # validate iter -------------------------------------------------
             if i % cfg.iter_valid == 0:
                 net.set_mode('valid')
-                valid_loss, valid_acc = validate(net, valid_loader)
+                valid_loss = validate(net, valid_loader)
                 net.set_mode('train')
 
                 print('\r', end='', flush=True)
-                log.write('%0.4f %5.1f k %6.1f %4.1f m | %0.3f   %0.2f %0.2f   %0.2f | %0.3f   %0.2f %0.2f  %0.2f | %0.3f   %0.2f %0.2f  %0.2f | %s\n' % (\
+                log.write('%0.4f %5.1f k %6.1f %4.1f m | %0.3f   %0.2f %0.2f   %0.2f %0.2f   %0.2f | %0.3f   %0.2f %0.2f   %0.2f %0.2f   %0.2f | %0.3f   %0.2f %0.2f   %0.2f %0.2f   %0.2f | %s\n' % (\
                          rate, i/1000, epoch, num_products/1000000,
-                         valid_loss[0], valid_loss[1], valid_loss[2], valid_loss[3], #valid_acc,
-                         train_loss[0], train_loss[1], train_loss[2], train_loss[3], #train_acc,
-                         batch_loss[0], batch_loss[1], batch_loss[2], batch_loss[3], #batch_acc,
+                         valid_loss[0], valid_loss[1], valid_loss[2], valid_loss[3], valid_loss[4], valid_loss[5],#valid_acc,
+                         train_loss[0], train_loss[1], train_loss[2], train_loss[3], train_loss[4], train_loss[5],#train_acc,
+                         batch_loss[0], batch_loss[1], batch_loss[2], batch_loss[3], batch_loss[4], batch_loss[5],#batch_acc,
                          time_to_str((timer() - start)/60)))
                 time.sleep(0.01)
             # save checkpoint_dir -------------------------------------------------
@@ -276,23 +259,24 @@ def run_train():
                            loss.cpu().data.numpy(),
                            net.rpn_cls_loss.cpu().data.numpy(),
                            net.rpn_reg_loss.cpu().data.numpy(),
-                           net.mask_cls_loss.cpu().data.numpy()
+                           net.rcnn_cls_loss.cpu().data.numpy(),
+                           net.rcnn_reg_loss.cpu().data.numpy(),
+                           net.mask_cls_loss.cpu().data.numpy(),
                          ))
             sum_train_loss += batch_loss
             sum_train_acc  += batch_acc
-            sum += 1
+            batch_sum += 1
             if i % cfg.iter_smooth == 0:
-                train_loss = sum_train_loss/sum
-                train_acc  = sum_train_acc /sum
-                sum_train_loss = np.zeros(4,np.float32)
+                train_loss = sum_train_loss/batch_sum
+                sum_train_loss = np.zeros(6,np.float32)
                 sum_train_acc  = 0.
-                sum = 0
+                batch_sum = 0
 
-            print('\r%0.4f %5.1f k %6.1f %4.1f m | %0.3f   %0.2f %0.2f  %0.2f | %0.3f   %0.2f %0.2f %0.2f | %0.3f   %0.2f %0.2f  %0.2f | %s  %d,%d,%s' % (\
+            print('\r%0.4f %5.1f k %6.1f %4.1f m | %0.3f   %0.2f %0.2f   %0.2f %0.2f   %0.2f | %0.3f   %0.2f %0.2f   %0.2f %0.2f   %0.2f | %0.3f   %0.2f %0.2f   %0.2f %0.2f   %0.2f | %s  %d,%d,%s' % (\
                          rate, i/1000, epoch, num_products/1000000,
-                         valid_loss[0], valid_loss[1], valid_loss[2], valid_loss[3], # valid_acc,
-                         train_loss[0], train_loss[1], train_loss[2], train_loss[3], # train_acc,
-                         batch_loss[0], batch_loss[1], batch_loss[2], batch_loss[3], # batch_acc,
+                         valid_loss[0], valid_loss[1], valid_loss[2], valid_loss[3], valid_loss[4], valid_loss[5], # valid_acc,
+                         train_loss[0], train_loss[1], train_loss[2], train_loss[3], train_loss[4], train_loss[5], # train_acc,
+                         batch_loss[0], batch_loss[1], batch_loss[2], batch_loss[3], batch_loss[4], batch_loss[5], # batch_acc,
                          time_to_str((timer() - start)/60), i, j, ''), end='', flush=True)#str(inputs.size()))
             j = j+1
         pass  # end of one data loader
@@ -300,9 +284,9 @@ def run_train():
 
     # save last
     if 1:
-        model_config_path = os.path.join(f.work_dir, 'checkpoint', 'configuration.pkl')
-        model_path = os.path.join(f.work_dir, 'checkpoint', '%d_model.pth'%i)
-        optimizer_path = os.path.join(f.work_dir, 'checkpoint', '%08d_optimizer.pth'%i)
+        model_config_path = os.path.join(f.folder_name, 'checkpoint', 'configuration.pkl')
+        model_path = os.path.join(f.folder_name, 'checkpoint', '%d_model.pth' % i)
+        optimizer_path = os.path.join(f.folder_name, 'checkpoint', '%08d_optimizer.pth' % i)
 
         torch.save(net.state_dict(), model_path)
         torch.save({

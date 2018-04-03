@@ -1,13 +1,24 @@
-from common import *
-from net.scheduler import StepLR
+import os
 import configparser
-
+from utility.scheduler import StepLR
 
 class Configuration(object):
 
     def __init__(self):
         super(Configuration, self).__init__()
         self.version = 'configuration version \'mask-rcnn-resnet50-fpn-kaggle\''
+        # source data downloaded from kaggle
+        self.source_dir = '/Users/Shawn/Downloads'
+        self.source_train_dir = os.path.join(self.source_dir, 'stage1_train')
+        self.source_test_dir = os.path.join(self.source_dir, 'stage1_test')
+
+        # root directory to store data & result
+        self.root_dir = '/root/xiaoxuan/kaggle'
+        # data directory to store preprocessed data
+        self.data_dir = os.path.join(self.root_dir, 'data')
+        self.split_dir = os.path.join(self.data_dir, 'splits')
+        # result directory to store model info
+        self.result_dir = os.path.join(self.root_dir, 'results')
 
         # net
         # include background class
@@ -41,6 +52,8 @@ class Configuration(object):
 
         self.rpn_train_bg_thresh_high = 0.5
         self.rpn_train_fg_thresh_low  = 0.5
+
+        self.rpn_train_scale_balance = False
 
         self.rpn_train_nms_pre_score_threshold = 0.7
         self.rpn_train_nms_overlap_threshold   = 0.8  # higher for more proposals for mask training
@@ -78,14 +91,14 @@ class Configuration(object):
         self.mask_test_mask_threshold  = 0.5
 
         # annotation
-        self.annotation_train_split = 'train_ids_all_670'
+        self.annotation_train_split = 'train_ids_all_664'
         self.annotation_test_split = 'test_ids_all_65'
 
         # training --------------------------------------------------------------
-        self.model_name = '3-18'
+        self.model_name = '4-03'
 
-        self.train_split = 'train_color_87'
-        self.valid_split = 'valid_color_20'
+        self.train_split = 'train_black_white_497'
+        self.valid_split = 'valid_black_white_44'
         self.pretrain = None
         self.checkpoint = None
 
@@ -93,18 +106,18 @@ class Configuration(object):
         self.lr = 0.01
         self.iter_accum = 1  # learning rate = lr/iter_accum
         self.batch_size = 12
-        self.num_iters = 1000 * 1000
+        self.num_iters = 35000
         self.iter_smooth = 20  # calculate smoothed loss over each 20 iter
         self.iter_valid = 100
-        self.iter_save = list(range(0, self.num_iters, 1000)) + [self.num_iters]
-        self.lr_scheduler = None # StepLR([ (0, 0.01),  (5000, 0.001),  (10000, 0.001)])
+        self.iter_save = list(range(0, self.num_iters, 2000)) + [self.num_iters]
+        self.lr_scheduler = StepLR([ (0, 0.01),  (6000, 0.001),  (20000, 0.0001)])
 
         # validation  -----------------------------------------------------------
         self.valid_checkpoint = None
         # submit ----------------------------------------------------------------
         self.submit_checkpoint = None
-        self.submit_split = 'test_color_4'
-        self.submit_csv_name = 'submission-color4-only.csv'
+        self.submit_split = 'test_black_white_53'
+        self.submit_csv_name = 'submission-BW53-only.csv'
 
     def __repr__(self):
         d = self.__dict__.copy()

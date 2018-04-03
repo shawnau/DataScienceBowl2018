@@ -1,8 +1,10 @@
-import numpy
-
+import os
+from timeit import default_timer as timer
+import numpy as np
+import cv2
+from torch.utils.data.dataset import Dataset
+from utility.file import read_list_from_file
 from net.lib.box.process import is_small_box_at_boundary, is_small_box, is_big_box
-from utility.file import *
-from net.lib.box.process import *
 
 
 MIN_SIZE =  6
@@ -25,16 +27,17 @@ class ScienceDataset(Dataset):
         meta: not used
         index: index of the image (unique)
     """
-    def __init__(self, split, transform=None, mode='train'):
+    def __init__(self, cfg, split, transform=None, mode='train'):
         super(ScienceDataset, self).__init__()
         start = timer()
 
+        self.cfg = cfg
         self.split = split
         self.transform = transform
         self.mode = mode
 
         # read split
-        self.ids = read_list_from_file(os.path.join(SPLIT_DIR, split), comment='#')
+        self.ids = read_list_from_file(os.path.join(self.cfg.split_dir, split), comment='#')
 
         # print
         print('\ttime = %0.2f min' % ((timer() - start) / 60))
@@ -42,14 +45,14 @@ class ScienceDataset(Dataset):
         print('')
 
     def __getitem__(self, index):
-        id     = self.ids[index]
-        name   = id.split('/')[-1]
-        folder = id.split('/')[0]
-        image_path = os.path.join(IMAGE_DIR, folder, 'images', '%s.png' % name)
+        folder_name = self.ids[index]
+        name   = folder_name.split('/')[-1]
+        folder = folder_name.split('/')[0]
+        image_path = os.path.join(self.cfg.data_dir, folder, 'images', '%s.png' % name)
         image  = cv2.imread(image_path, cv2.IMREAD_COLOR)
 
         if self.mode in ['train']:
-            multi_mask_path = os.path.join(IMAGE_DIR, folder, 'multi_masks', '%s.npy' % name)
+            multi_mask_path = os.path.join(self.cfg.data_dir, folder, 'multi_masks', '%s.npy' % name)
             multi_mask = np.load(multi_mask_path).astype(np.int32)
             meta = '<not_used>'
 
@@ -103,9 +106,10 @@ def multi_mask_to_annotation(multi_mask):
             w = (x1-x0)+1
             h = (y1-y0)+1
 
-            border = max(2, round(0.2*(w+h)/2))
             # border = max(1, round(0.1*min(w,h)))
             # border = 0
+            border = max(2, round(0.2*(w+h)/2))
+
             x0 = x0-border
             x1 = x1+border
             y0 = y0-border
