@@ -1,15 +1,6 @@
 import os
-# edit settings here
-ROOT_DIR = '/root/xiaoxuan/kaggle'
-
-DATA_DIR     = os.path.join(ROOT_DIR, 'data')
-SPLIT_DIR    = os.path.join(DATA_DIR, 'split')
-IMAGE_DIR    = os.path.join(DATA_DIR, 'image')
-DOWNLOAD_DIR = os.path.join(DATA_DIR, '__download__')
-RESULTS_DIR = os.path.join(ROOT_DIR, 'results')
-
-
 from datetime import datetime
+
 PROJECT_PATH = os.path.dirname(os.path.realpath(__file__))
 IDENTIFIER   = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 

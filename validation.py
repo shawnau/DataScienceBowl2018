@@ -1,59 +1,20 @@
+import sys
 from dataset.annotate import *
-from net.draw import *
+from utility.draw import *
+from utility.metric import compute_average_precision_for_mask
 
 sys.path.append(os.path.dirname(__file__))
 from train import *
 
 
-# overwrite functions
-def revert(net, images):
-
-    def torch_clip_proposals(proposals, index, width, height):
-        boxes = torch.stack((
-             proposals[index,0],
-             proposals[index,1].clamp(0, width  - 1),
-             proposals[index,2].clamp(0, height - 1),
-             proposals[index,3].clamp(0, width  - 1),
-             proposals[index,4].clamp(0, height - 1),
-             proposals[index,5],
-             proposals[index,6],
-        ), 1)
-        return proposals
-
-    batch_size = len(images)
-    for b in range(batch_size):
-        image = images[b]
-        height, width = image.shape[:2]
-
-        # net.rpn_logits_flat  <todo>
-        # net.rpn_deltas_flat  <todo>
-        # net.rpn_window       <todo>
-        # net.rpn_proposals    <todo>
-
-        # net.rcnn_logits
-        # net.rcnn_deltas
-        # net.rcnn_proposals <todo>
-
-        # mask --
-        # net.mask_logits
-        index = (net.detections[:, 0] == b).nonzero().view(-1)
-        net.detections = torch_clip_proposals(net.detections, index, width, height)
-        net.masks[b] = net.masks[b][:height, :width]
-
-    return net, image
-
-
 def eval_augment(image, multi_mask, meta, index):
-
     pad_image = pad_to_factor(image, factor=16)
     input = torch.from_numpy(pad_image.transpose((2,0,1))).float().div(255)
     box, label, instance = multi_mask_to_annotation(multi_mask)
-
     return input, box, label, instance, meta, image, index
 
 
 def eval_collate(batch):
-
     batch_size = len(batch)
     inputs    = torch.stack([batch[b][0]for b in range(batch_size)], 0)
     boxes     =             [batch[b][1]for b in range(batch_size)]
@@ -69,13 +30,9 @@ def eval_collate(batch):
 def run_evaluate():
 
     cfg = Configuration()
-    work_dir = os.path.join(RESULTS_DIR, cfg.model_name)
-    initial_checkpoint = os.path.join(RESULTS_DIR, cfg.model_name, 'checkpoint', cfg.valid_checkpoint)
-
-    os.makedirs(os.path.join(work_dir, 'evaluate', 'overlays'), exist_ok=True)
-    os.makedirs(os.path.join(work_dir, 'evaluate', 'npys'), exist_ok=True)
-    os.makedirs(os.path.join(work_dir, 'checkpoint'), exist_ok=True)
-    os.makedirs(os.path.join(work_dir, 'backup'), exist_ok=True)
+    work_dir = os.path.join(cfg.result_dir, cfg.model_name)
+    f = TrainFolder(work_dir)
+    initial_checkpoint = os.path.join(f.checkpoint_dir, cfg.valid_checkpoint)
 
     log = Logger()
     log.open(work_dir+'/log.evaluate.txt', mode='a')
@@ -87,10 +44,8 @@ def run_evaluate():
     log.write('\n')
 
     # net ------------------------------
-    cfg = Configuration()
     # cfg.rpn_train_nms_pre_score_threshold = 0.8 #0.885#0.5
     # cfg.rpn_test_nms_pre_score_threshold  = 0.8 #0.885#0.5
-
     net = MaskRcnnNet(cfg).cuda()
     if initial_checkpoint is not None:
         log.write('\tinitial_checkpoint = %s\n' % initial_checkpoint)
@@ -102,7 +57,7 @@ def run_evaluate():
     # dataset ----------------------------------------
     log.write('** dataset setting **\n')
 
-    test_dataset = ScienceDataset(cfg.valid_split, mode='train', transform=eval_augment)
+    test_dataset = ScienceDataset(cfg, cfg.valid_split, mode='train', transform=eval_augment)
     test_loader  = DataLoader(
                         test_dataset,
                         sampler = SequentialSampler(test_dataset),
@@ -123,7 +78,7 @@ def run_evaluate():
 
     test_num  = 0
     test_loss = np.zeros(5, np.float32)
-    test_acc  = 0
+
     for i, (inputs, truth_boxes, truth_labels, truth_instances, metas, images, indices) in enumerate(test_loader, 0):
         if all((truth_label > 0).sum() == 0 for truth_label in truth_labels):
             continue
@@ -133,23 +88,14 @@ def run_evaluate():
             inputs = Variable(inputs).cuda()
             net(inputs, truth_boxes,  truth_labels, truth_instances)
         # save results ---------------------------------------
-        revert(net, images)
-
         batch_size = len(indices)
         assert(batch_size == 1)  # currently support batch_size==1 only
         batch_size,C,H,W = inputs.size()
-
-        #inputs = inputs.data.cpu().numpy()
-        #window          = net.rpn_window
-        #rpn_logits_flat = net.rpn_logits_flat.data.cpu().numpy()
-        #rpn_deltas_flat = net.rpn_deltas_flat.data.cpu().numpy()
-        #proposals  = net.rpn_proposals
         masks      = net.masks
         detections = net.detections.cpu().numpy()
 
         for b in range(batch_size):
             image  = images[b]
-            height, width  = image.shape[:2]
             mask = masks[b]
 
             index = np.where(detections[:, 0] == b)[0]
@@ -166,20 +112,25 @@ def run_evaluate():
 
             box_precision, box_recall, box_result, truth_box_result = \
                 compute_precision_for_box(box, truth_box, truth_label, threshold=[0.5])
+
             box_precision = box_precision[0]
 
             mask_average_precisions.append(mask_average_precision)
             box_precisions_50.append(box_precision)
 
             # print results --------------------------------------------
-            id = test_dataset.ids[indices[b]]
-            name = id.split('/')[-1]
+            img_id = test_dataset.ids[indices[b]]
+            name = img_id.split('/')[-1]
             print('%d\t%s\t%0.5f  (%0.5f)' % (i, name, mask_average_precision, box_precision))
+
+            # save data
+            np.save(os.path.join(f.evaluate_npy_dir, '%s.npy' % name), mask)
 
             # draw prediction ------------------------------------------
             contour_overlay  = multi_mask_to_contour_overlay(mask, image, color=[0,255,0])
             color_overlay    = multi_mask_to_color_overlay(mask, color='summer')
             color1_overlay   = multi_mask_to_contour_overlay(mask, color_overlay, color=[255,255,255])
+
             all1 = np.hstack((image, contour_overlay, color1_overlay))
 
             all6 = draw_multi_proposal_metric(cfg, image, detection,
@@ -188,26 +139,16 @@ def run_evaluate():
             all7 = draw_mask_metric(cfg, image, mask,
                                     truth_box, truth_label, truth_instance)
 
-            cv2.imwrite(os.path.join(work_dir, 'evaluate', 'overlays', '%s.png' % name), all1)
-            cv2.imwrite(os.path.join(work_dir, 'evaluate', 'overlays', '%s.png' % name), all6)
-            cv2.imwrite(os.path.join(work_dir, 'evaluate', 'overlays', '%s.png' % name), all7)
+            cv2.imwrite(os.path.join(f.evaluate_overlay_dir, '%s.png' % name), all1)
+            cv2.imwrite(os.path.join(f.evaluate_overlay_dir, '%s.png' % name), all6)
+            cv2.imwrite(os.path.join(f.evaluate_overlay_dir, '%s.png' % name), all7)
 
-        # print statistics  ------------
-        # test_acc += 0 #batch_size*acc[0][0]
-        # test_loss += batch_size*np.array((
-        #                    net.total_loss.cpu().data.numpy(),
-        #                    net.rpn_cls_loss.cpu().data.numpy(),
-        #                    net.rpn_reg_loss.cpu().data.numpy(),
-        #                     0,0,
-        #                  ))
         test_num += batch_size
 
     # assert(test_num == len(test_loader.sampler))
-    test_acc  = test_acc/test_num
     test_loss = test_loss/test_num
 
     log.write('initial_checkpoint  = %s\n'%(initial_checkpoint))
-    log.write('test_acc  = %0.5f\n'%(test_acc))
     log.write('test_loss = %0.5f\n'%(test_loss[0]))
     log.write('test_num  = %d\n'%(test_num))
     log.write('\n')

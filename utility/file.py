@@ -1,5 +1,8 @@
-from common import *
+import os
+import sys
+import shutil
 import builtins
+
 
 # log ------------------------------------
 def remove_comments(lines, token='#'):
@@ -38,6 +41,29 @@ def empty(dir):
         os.makedirs(dir)
 
 
+# io ------------------------------------
+def write_list_to_file(strings, list_file):
+    with open(list_file, 'w') as f:
+        for s in strings:
+            f.write('%s\n'%str(s))
+    pass
+
+
+def read_list_from_file(list_file, comment='#', func=None):
+    with open(list_file) as f:
+        lines = f.readlines()
+
+    strings = []
+    for line in lines:
+        s = line.split(comment, 1)[0].strip()
+        if s != '':
+            strings.append(s)
+    if func is not None:
+        strings = [func(s) for s in strings]
+
+    return strings
+
+
 # http://stackoverflow.com/questions/34950201/pycharm-print-end-r-statement-not-working
 class Logger(object):
     def __init__(self):
@@ -67,31 +93,7 @@ class Logger(object):
         pass
 
 
-# io ------------------------------------
-def write_list_to_file(strings, list_file):
-    with open(list_file, 'w') as f:
-        for s in strings:
-            f.write('%s\n'%str(s))
-    pass
-
-
-def read_list_from_file(list_file, comment='#', func=None):
-    with open(list_file) as f:
-        lines = f.readlines()
-
-    strings = []
-    for line in lines:
-        s = line.split(comment, 1)[0].strip()
-        if s != '':
-            strings.append(s)
-    if func is not None:
-        strings = [func(s) for s in strings]
-
-    return strings
-
 # backup ------------------------------------
-
-
 # https://stackoverflow.com/questions/1855095/how-to-create-a-zip-archive-of-a-directory
 def backup_project_as_zip(project_dir, zip_file):
     assert(os.path.isdir(project_dir))
