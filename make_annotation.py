@@ -3,7 +3,7 @@ import numpy as np
 import cv2
 
 from utility.file import read_list_from_file
-from dataset.annotate import multi_mask_to_color_overlay, multi_mask_to_contour_overlay
+from utility.draw import multi_mask_to_color_overlay, multi_mask_to_contour_overlay
 from dataset.folder import SourceFolder, DataFolder
 from configuration import Configuration
 

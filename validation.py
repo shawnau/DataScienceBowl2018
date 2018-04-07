@@ -1,6 +1,7 @@
 import sys
-from dataset.annotate import *
+
 from utility.draw import *
+from utility.draw import multi_mask_to_color_overlay, multi_mask_to_contour_overlay
 from utility.metric import compute_average_precision_for_mask
 
 sys.path.append(os.path.dirname(__file__))
@@ -92,7 +93,7 @@ def run_evaluate():
         assert(batch_size == 1)  # currently support batch_size==1 only
         batch_size,C,H,W = inputs.size()
         masks      = net.masks
-        detections = net.detections.cpu().numpy()
+        detections = net.rcnn_proposals.cpu().numpy()
 
         for b in range(batch_size):
             image  = images[b]

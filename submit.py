@@ -1,6 +1,6 @@
 import os
 import sys
-from dataset.annotate import multi_mask_to_color_overlay, multi_mask_to_contour_overlay
+from utility.draw import multi_mask_to_color_overlay, multi_mask_to_contour_overlay
 from dataset.folder import DataFolder
 from net.lib.box.process import torch_clip_proposals
 
@@ -141,6 +141,7 @@ def run_submit():
             net(inputs)
 
         # save results ---------------------------------------
+        revert(net, images)
         batch_size = len(indices)
         assert(batch_size == 1)
 

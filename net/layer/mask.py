@@ -67,7 +67,7 @@ def mask_nms(cfg, images, proposals, mask_logits):
     :param proposals: (B, 7) [i, x0, y0, x1, y1, score, label]
     :param mask_logits: num_class planes of 28*28 size
     :return:
-        multi_masks of the same size as input
+        (list) multi_masks of the same size as input
     """
     # images = (images.data.cpu().numpy().transpose((0,2,3,1))*255).astype(np.uint8)
 
@@ -219,7 +219,7 @@ def _make_one_mask_target(cfg, mode, image, proposals, truth_box, truth_label, t
         maskhead are used to predict mask,
         all masks are positive proposals. (foreground)
         here we have 2 classes so it's_train fixed to 1
-    :param truth_instance: list of truth instances, (H, W)
+    :param truth_instance: list of truth instances, (B, H, W)
     :return:
         sampled_proposal: same as proposals
         sampled_label: same as truth_label

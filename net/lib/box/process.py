@@ -38,7 +38,6 @@ def bbox_encode(bboxes, targets):
     :param targets: target ground truth boxes
     :return: deltas
     """
-
     bw = bboxes[:, 2] - bboxes[:, 0] + 1.0
     bh = bboxes[:, 3] - bboxes[:, 1] + 1.0
     bx = bboxes[:, 0] + 0.5 * bw
