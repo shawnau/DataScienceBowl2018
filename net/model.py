@@ -27,11 +27,11 @@ class MaskRcnnNet(nn.Module):
         self.mask_head   = MaskHead (cfg, crop_channels)
 
     def forward(self, images, truth_boxes=None, truth_labels=None, truth_instances=None):
-        features = self.feature_net(images)
+        features = self.feature_net(images)
 
         # rpn proposals -------------------------------------------
-        self.rpn_logits_flat, self.rpn_deltas_flat = self.rpn_head(features)
-        self.anchor_boxes = fpn_make_anchor_boxes(features, self.cfg)
+        # self.rpn_logits_flat, self.rpn_deltas_flat = self.rpn_head(features)
+        # self.anchor_boxes = fpn_make_anchor_boxes(features, self.cfg)
         self.rpn_proposals = rpn_nms(self.cfg, self.mode, images,
                                      self.anchor_boxes,
                                      self.rpn_logits_flat,
@@ -57,8 +57,8 @@ class MaskRcnnNet(nn.Module):
         # rcnn proposals ------------------------------------------------
         if len(self.rpn_proposals) > 0:
             rcnn_crops = self.rcnn_crop(features, self.rpn_proposals)
-            self.rcnn_logits, self.rcnn_deltas = self.rcnn_head(rcnn_crops)
-            self.rcnn_proposals = rcnn_nms(self.cfg, self.mode, images,
+            self.rcnn_logits, self.rcnn_deltas = self.rcnn_head(rcnn_crops)
+            self.rcnn_proposals = rcnn_nms(self.cfg, self.mode, images,
                                            self.rpn_proposals,
                                            self.rcnn_logits,
                                            self.rcnn_deltas)
@@ -80,8 +80,8 @@ class MaskRcnnNet(nn.Module):
 
         if len(self.rcnn_proposals) > 0:
               mask_crops = self.mask_crop(features, self.rcnn_proposals)
-              self.mask_logits = self.mask_head(mask_crops)
-              self.masks = mask_nms(self.cfg, images, self.rcnn_proposals, self.mask_logits)
+              self.mask_logits = self.mask_head(mask_crops)
+              self.masks = mask_nms(self.cfg, images, self.rcnn_proposals, self.mask_logits)
 
     def loss(self):
         self.rpn_cls_loss = rpn_cls_loss(self.rpn_logits_flat,

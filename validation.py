@@ -1,5 +1,4 @@
 import sys
-from dataset.annotate import *
 from utility.draw import *
 from utility.metric import compute_average_precision_for_mask
 

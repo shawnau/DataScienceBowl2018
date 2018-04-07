@@ -1,6 +1,6 @@
 import os
 import sys
-from dataset.annotate import multi_mask_to_color_overlay, multi_mask_to_contour_overlay
+from utility.draw import multi_mask_to_color_overlay, multi_mask_to_contour_overlay
 from dataset.folder import DataFolder
 from net.lib.box.process import torch_clip_proposals
 

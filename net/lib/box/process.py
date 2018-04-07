@@ -80,19 +80,19 @@ def bbox_decode(bboxes, deltas):
     dx = deltas[:, 0::4]
     dy = deltas[:, 1::4]
     dw = deltas[:, 2::4]
-    dh = deltas[:, 3::4]
+    dh = deltas[:, 3::4]
     
     x = dx * bw + bx
     y = dy * bh + by
-    dw = np.clip(dw, -10, 10)
-    dh = np.clip(dh, -10, 10)
-    w = np.exp(dw) * bw
+    dw = np.clip(dw, -10, 10)
+    dh = np.clip(dh, -10, 10)
+    w = np.exp(dw) * bw
     h = np.exp(dh) * bh
 
     predictions[:, 0::4] = x - 0.5 * w  # x0,y0,x1,y1
     predictions[:, 1::4] = y - 0.5 * h
-    predictions[:, 2::4] = x + 0.5 * w
-    predictions[:, 3::4] = y + 0.5 * h
+    predictions[:, 2::4] = x + 0.5 * w  # todo: should there be a -1 ?
+    predictions[:, 3::4] = y + 0.5 * h  # todo: should there be a -1 ?
 
     return predictions
 

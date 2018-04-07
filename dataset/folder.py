@@ -93,7 +93,7 @@ class TrainFolder:
 
 
 if __name__ == '__main__':
-    from dataset.annotate import multi_mask_to_color_overlay, multi_mask_to_contour_overlay
+    from utility.draw import multi_mask_to_color_overlay, multi_mask_to_contour_overlay
 
     src_root_dir = '/Users/Shawn/Downloads'
     s_train = SourceFolder(os.path.join(src_root_dir, 'stage1_train'))

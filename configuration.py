@@ -99,8 +99,8 @@ class Configuration(object):
 
         self.train_split = 'train_black_white_497'
         self.valid_split = 'valid_black_white_44'
-        self.pretrain = '00014000_model.pth'
-        self.checkpoint = None
+        self.pretrain = '00014000_model.pth'
+        self.checkpoint = None
 
         # optim -----------------------------------------------------------------
         self.lr = 0.01
