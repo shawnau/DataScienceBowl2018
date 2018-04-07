@@ -8,7 +8,7 @@ class Configuration(object):
         super(Configuration, self).__init__()
         self.version = 'configuration version \'mask-rcnn-resnet50-fpn-kaggle\''
         # source data downloaded from kaggle
-        self.source_dir = '/Users/Shawn/Downloads'
+        self.source_dir = '/root/xiaoxuan/kaggle/data/__download__'
         self.source_train_dir = os.path.join(self.source_dir, 'stage1_train')
         self.source_test_dir = os.path.join(self.source_dir, 'stage1_test')
 
@@ -65,7 +65,7 @@ class Configuration(object):
 
         # rcnn ------------------------------------------------------------------
         self.rcnn_crop_size         = 14
-        self.rcnn_train_batch_size  = 64  # per image
+        self.rcnn_train_batch_size  = 128  # per image
         self.rcnn_train_fg_fraction = 0.5
         self.rcnn_train_fg_thresh_low  = 0.5
         self.rcnn_train_bg_thresh_high = 0.5
@@ -81,7 +81,7 @@ class Configuration(object):
 
         # mask ------------------------------------------------------------------
         self.mask_crop_size            = 14  # input of mask head
-        self.mask_train_batch_size     = 64  # per image
+        self.mask_train_batch_size     = 128  # per image
         self.mask_size                 = 28  # out put of mask head
         self.mask_train_min_size       = 5
         self.mask_train_fg_thresh_low  = self.rpn_train_fg_thresh_low
@@ -91,25 +91,25 @@ class Configuration(object):
         self.mask_test_mask_threshold  = 0.5
 
         # annotation
-        self.annotation_train_split = 'train_ids_all_664'
-        self.annotation_test_split = 'test_ids_all_65'
+        self.annotation_train_split = 'train_all_664'
+        self.annotation_test_split = 'test_all_65'
 
         # training --------------------------------------------------------------
-        self.model_name = '4-03'
+        self.model_name = '4-04'
 
         self.train_split = 'train_black_white_497'
         self.valid_split = 'valid_black_white_44'
-        self.pretrain = None
-        self.checkpoint = None
+        self.pretrain = '00014000_model.pth'
+        self.checkpoint = None
 
         # optim -----------------------------------------------------------------
         self.lr = 0.01
         self.iter_accum = 1  # learning rate = lr/iter_accum
-        self.batch_size = 12
+        self.batch_size = 8
         self.num_iters = 35000
         self.iter_smooth = 20  # calculate smoothed loss over each 20 iter
         self.iter_valid = 100
-        self.iter_save = list(range(0, self.num_iters, 2000)) + [self.num_iters]
+        self.iter_save = list(range(0, self.num_iters, 1000)) + [self.num_iters]
         self.lr_scheduler = StepLR([ (0, 0.01),  (6000, 0.001),  (20000, 0.0001)])
 
         # validation  -----------------------------------------------------------

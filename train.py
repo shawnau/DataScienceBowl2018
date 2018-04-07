@@ -109,20 +109,15 @@ def run_train():
     if cfg.pretrain is not None:
         pretrain_file = os.path.join(f.checkpoint_dir, cfg.pretrain)
         log.write('\tpretrain_file = %s\n' % pretrain_file)
-        net.load_pretrain(pretrain_file, skip)
+        # net.load_pretrain(pretrain_file, skip)
+        net.load_state_dict(torch.load(pretrain_file, map_location=lambda storage, loc: storage))
 
     # optimiser -------------------------------------------------
     optimizer = optim.Adam(filter(lambda p: p.requires_grad, net.parameters()),
-                         lr=cfg.lr/cfg.iter_accum,
-                         amsgrad=True,
-                         weight_decay=0.0001
-                         )
-    #optimizer = optim.SGD(filter(lambda p: p.requires_grad, net.parameters()),
-    #                      lr=cfg.lr / cfg.iter_accum,
-    #                      momentum=0.9,
-    #                      weight_decay=0.0001
-    #                      )
-    
+                          lr=cfg.lr/cfg.iter_accum,
+                          amsgrad=True,
+                          weight_decay=0.0001
+                          )
     lr_scheduler = cfg.lr_scheduler
 
     start_iter  = 0
@@ -211,7 +206,7 @@ def run_train():
                 net.set_mode('train')
 
                 print('\r', end='', flush=True)
-                log.write('%0.4f %5.1f k %6.1f %4.1f m | %0.3f   %0.2f %0.2f   %0.2f %0.2f   %0.2f | %0.3f   %0.2f %0.2f   %0.2f %0.2f   %0.2f | %0.3f   %0.2f %0.2f   %0.2f %0.2f   %0.2f | %s\n' % (\
+                log.write('%0.4f %5.1f k %6.1f %4.1f m | %0.3f   %0.3f %0.3f   %0.3f %0.3f   %0.3f | %0.3f   %0.3f %0.3f   %0.3f %0.3f   %0.3f | %0.3f   %0.3f %0.3f   %0.3f %0.3f   %0.3f | %s\n' % (\
                          rate, i/1000, epoch, num_products/1000000,
                          valid_loss[0], valid_loss[1], valid_loss[2], valid_loss[3], valid_loss[4], valid_loss[5],#valid_acc,
                          train_loss[0], train_loss[1], train_loss[2], train_loss[3], train_loss[4], train_loss[5],#train_acc,
@@ -272,7 +267,7 @@ def run_train():
                 sum_train_acc  = 0.
                 batch_sum = 0
 
-            print('\r%0.4f %5.1f k %6.1f %4.1f m | %0.3f   %0.2f %0.2f   %0.2f %0.2f   %0.2f | %0.3f   %0.2f %0.2f   %0.2f %0.2f   %0.2f | %0.3f   %0.2f %0.2f   %0.2f %0.2f   %0.2f | %s  %d,%d,%s' % (\
+            print('\r%0.4f %5.1f k %6.1f %4.1f m | %0.3f   %0.3f %0.3f   %0.3f %0.3f   %0.3f | %0.3f   %0.3f %0.3f   %0.3f %0.3f   %0.3f | %0.3f   %0.3f %0.3f   %0.3f %0.3f   %0.3f | %s  %d,%d,%s' % (\
                          rate, i/1000, epoch, num_products/1000000,
                          valid_loss[0], valid_loss[1], valid_loss[2], valid_loss[3], valid_loss[4], valid_loss[5], # valid_acc,
                          train_loss[0], train_loss[1], train_loss[2], train_loss[3], train_loss[4], train_loss[5], # train_acc,
