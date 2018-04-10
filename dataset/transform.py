@@ -1,15 +1,18 @@
-from common import *
+import random
+import math
+import numpy as np
+import cv2
+import skimage
 
 
-# for debug
-def dummy_transform(image):
-    print('\tdummy_transform')
-    return image
-
-
-# kaggle science bowl-2
 # geometric ---
 def pad_to_factor(image, factor=16):
+    """
+    padding image to make 16 being its factor
+    :param image:
+    :param factor:
+    :return:
+    """
     height, width = image.shape[:2]
     h = math.ceil(height/factor)*factor
     w = math.ceil(width/factor)*factor
@@ -186,70 +189,3 @@ def random_shift_scale_rotate_transform(image, mask,
         mask = relabel_multi_mask(mask)
 
     return image, mask
-
-
-# single image
-
-# agumentation (photometric) ----------------------
-def random_brightness_shift_transform(image, limit=[16,64], u=0.5):
-    if np.random.random() < u:
-        alpha = np.random.uniform(limit[0], limit[1])
-        image = image + alpha*255
-        image = np.clip(image, 0, 255).astype(np.uint8)
-    return image
-
-
-def random_brightness_transform(image, limit=[0.5,1.5], u=0.5):
-    if np.random.random() < u:
-        alpha = np.random.uniform(limit[0], limit[1])
-        image = alpha*image
-        image = np.clip(image, 0, 255).astype(np.uint8)
-    return image
-
-
-def random_contrast_transform(image, limit=[0.5,1.5], u=0.5):
-    if np.random.random() < u:
-        alpha = np.random.uniform(limit[0], limit[1])
-        coef = np.array([[[0.114, 0.587,  0.299]]]) #rgb to gray (YCbCr)
-        gray = image * coef
-        gray = (3.0 * (1.0 - alpha) / gray.size) * np.sum(gray)
-        image = alpha*image  + gray
-        image = np.clip(image, 0, 255).astype(np.uint8)
-    return image
-
-
-def random_saturation_transform(image, limit=[0.5,1.5], u=0.5):
-    if np.random.random() < u:
-        alpha = np.random.uniform(limit[0], limit[1])
-        coef  = np.array([[[0.114, 0.587,  0.299]]])
-        gray  = image * coef
-        gray  = np.sum(gray,axis=2, keepdims=True)
-        image = alpha*image  + (1.0 - alpha)*gray
-        image = np.clip(image, 0, 255).astype(np.uint8)
-    return image
-
-
-# https://github.com/chainer/chainercv/blob/master/chainercv/links/model/ssd/transforms.py
-# https://github.com/fchollet/keras/pull/4806/files
-# https://zhuanlan.zhihu.com/p/24425116
-# http://lamda.nju.edu.cn/weixs/project/CNNTricks/CNNTricks.html
-def random_hue_transform(image, limit=[-0.1,0.1], u=0.5):
-    if random.random() < u:
-        h = int(np.random.uniform(limit[0], limit[1])*180)
-        #print(h)
-
-        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-        hsv[:, :, 0] = (hsv[:, :, 0].astype(int) + h) % 180
-        image = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
-    return image
-
-
-def random_noise_transform(image, limit=[0, 0.5], u=0.5):
-    if random.random() < u:
-        H,W = image.shape[:2]
-        noise = np.random.uniform(limit[0],limit[1],size=(H,W))*255
-
-        image = image + noise[:,:,np.newaxis]*np.array([1,1,1])
-        image = np.clip(image, 0, 255).astype(np.uint8)
-
-    return image

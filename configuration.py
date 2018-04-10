@@ -89,6 +89,7 @@ class Configuration(object):
         self.mask_test_nms_pre_score_threshold = 0.4
         self.mask_test_nms_overlap_threshold = 0.1
         self.mask_test_mask_threshold  = 0.5
+        self.mask_test_mask_min_area = 8
 
         # annotation
         self.annotation_train_split = 'train_all_664'

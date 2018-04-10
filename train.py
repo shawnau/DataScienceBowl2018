@@ -1,3 +1,4 @@
+from common import *
 from dataset.folder import TrainFolder
 from dataset.transform import *
 from dataset.reader import *

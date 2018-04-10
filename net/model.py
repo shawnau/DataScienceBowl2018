@@ -76,12 +76,14 @@ class MaskRcnnNet(nn.Module):
             self.rcnn_proposals = self.sampled_rcnn_proposals
 
         # segmentation  -------------------------------------------
+        self.detections = self.rcnn_proposals
         self.masks = make_empty_masks(self.cfg, self.mode, images)
 
         if len(self.rcnn_proposals) > 0:
-              mask_crops = self.mask_crop(features, self.rcnn_proposals)
-              self.mask_logits = self.mask_head(mask_crops)
-              self.masks = mask_nms(self.cfg, images, self.rcnn_proposals, self.mask_logits)
+            mask_crops = self.mask_crop(features, self.detections)
+            self.mask_logits = self.mask_head(mask_crops)
+            self.masks, self.mask_instances, self.mask_proposals = mask_nms(self.cfg, images, self.rcnn_proposals, self.mask_logits)
+            self.detections = self.mask_proposals
 
     def loss(self):
         self.rpn_cls_loss = rpn_cls_loss(self.rpn_logits_flat,
@@ -111,6 +113,20 @@ class MaskRcnnNet(nn.Module):
                           self.mask_cls_loss
 
         return self.total_loss
+
+    def forward_mask(self, images, rcnn_proposals):
+        cfg  = self.cfg
+        mode = self.mode
+        self.rcnn_proposals = rcnn_proposals
+
+        features = data_parallel(self.feature_net, images)
+        self.detections = self.rcnn_proposals
+        self.masks      = make_empty_masks(cfg, mode, images)
+        if len(self.rcnn_proposals) > 0:
+              mask_crops = self.mask_crop(features, self.detections)
+              self.mask_logits = data_parallel(self.mask_head, mask_crops)
+              self.masks,  self.mask_instances, self.mask_proposals  = mask_nms(cfg, images, self.rcnn_proposals, self.mask_logits)
+              self.detections = self.mask_proposals
 
     def set_mode(self, mode ):
         self.mode = mode

@@ -1,6 +1,7 @@
 import copy
 import cv2
 import numpy as np
+import skimage
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -56,6 +57,26 @@ def make_empty_masks(cfg, mode, inputs):
     return masks
 
 
+def instance_to_binary(instance, threshold, min_area):
+    binary = instance > threshold
+    label  = skimage.morphology.label(binary)
+    num_labels = label.max()
+    if num_labels>0:
+        areas    = [(label==c+1).sum() for c in range(num_labels)]
+        max_area = max(areas)
+
+        for c in range(num_labels):
+            if areas[c] != max_area:
+                binary[label==c+1]=0
+            else:
+                if max_area<min_area:
+                    binary[label==c+1]=0
+
+    #<todo> fill holes? ---
+
+    return binary
+
+
 def mask_nms(cfg, images, proposals, mask_logits):
     """
     1. do non-maximum suppression to remove overlapping segmentations
@@ -65,85 +86,111 @@ def mask_nms(cfg, images, proposals, mask_logits):
     :param cfg:
     :param images: (B, C, H, W)
     :param proposals: (B, 7) [i, x0, y0, x1, y1, score, label]
-    :param mask_logits: num_class planes of 28*28 size
+    :param mask_logits: (B, num_classes, 2*crop_size, 2*crop_size)
     :return:
-        multi_masks of the same size as input
+        b_multi_masks: (B, H, W) masks labelled with 1,2,...N (total number of masks)
+        b_mask_instances: (B*N, H, W) masks with prob
+        b_mask_proposals: (B*N, ) proposals
     """
-    # images = (images.data.cpu().numpy().transpose((0,2,3,1))*255).astype(np.uint8)
-
     overlap_threshold   = cfg.mask_test_nms_overlap_threshold
     pre_score_threshold = cfg.mask_test_nms_pre_score_threshold
     mask_threshold      = cfg.mask_test_mask_threshold
+    mask_min_area       = cfg.mask_test_mask_min_area
 
     proposals   = proposals.cpu().data.numpy()
     mask_logits = mask_logits.cpu().data.numpy()
     mask_probs  = np_sigmoid(mask_logits)
 
-    multi_masks = []
+    b_multi_masks = []
+    b_mask_proposals = []
+    b_mask_instances = []
     batch_size, C, H, W = images.size()
     for b in range(batch_size):
-        multi_mask = np.zeros((H, W), np.float32)
-        # filter by rcnn score. do we really need this?
+        multi_masks = np.zeros((H, W), np.float32)  # multi masks for a image
+        mask_proposals = []  # proposals for a image
+        mask_instances = []  # instances for a image
+        num_keeps = 0
+
         index = np.where((proposals[:, 0] == b) & (proposals[:, 5] > pre_score_threshold))[0]
         if len(index) != 0:
-            instance = []
-            box = []
+            instances = []    # all instances
+            boxes = []        # all boxes
             for i in index:
-                m = np.zeros((H, W), np.bool)
+                mask = np.zeros((H, W), np.bool)
 
                 x0, y0, x1, y1 = proposals[i, 1:5].astype(np.int32)
                 h, w = y1-y0+1, x1-x0+1
-                label = int(proposals[i, 6])  # get label of the instance
-                crop = mask_probs[i, label]   # get mask channel of the label
+                label = int(proposals[i, 6])    # get label of the instance
+                crop = mask_probs[i, label]     # get mask channel of the label
                 crop = cv2.resize(crop, (w, h), interpolation=cv2.INTER_LINEAR)
-                crop = crop > mask_threshold  # turn prob feature map into 0/1 mask
-                m[y0:y1+1, x0:x1+1] = crop    # paste mask into empty mask
+                # crop = crop > mask_threshold  # turn prob feature map into 0/1 mask
+                mask[y0:y1+1, x0:x1+1] = crop   # paste mask into empty mask
 
-                instance.append(m)
-                box.append((x0, y0, x1, y1))
+                instances.append(mask)
+                boxes.append([x0, y0, x1, y1])
 
-            instance = np.array(instance, np.bool)
-            box = np.array(box, np.float32)
-
-            # compute overlap, do nms
-            box_overlap = cython_box_overlap(box, box)
-
+            # compute box overlap, do nms
             L = len(index)
+            binary = [instance_to_binary(m, mask_threshold, mask_min_area) for m in instances]
+            boxes = np.array(boxes, np.float32)
+            box_overlap = cython_box_overlap(boxes, boxes)
             instance_overlap = np.zeros((L, L), np.float32)
+
+            # calculate instance overlapping iou
             for i in range(L):
                 instance_overlap[i, i] = 1
                 for j in range(i+1, L):
                     if box_overlap[i, j] < 0.01:
                         continue
 
-                    x0 = int(min(box[i, 0], box[j, 0]))
-                    y0 = int(min(box[i, 1], box[j, 1]))
-                    x1 = int(max(box[i, 2], box[j, 2]))
-                    y1 = int(max(box[i, 3], box[j, 3]))
+                    x0 = int(min(boxes[i, 0], boxes[j, 0]))
+                    y0 = int(min(boxes[i, 1], boxes[j, 1]))
+                    x1 = int(max(boxes[i, 2], boxes[j, 2]))
+                    y1 = int(max(boxes[i, 3], boxes[j, 3]))
 
-                    intersection = (instance[i, y0:y1, x0:x1] & instance[j, y0:y1, x0:x1]).sum()
-                    area = (instance[i, y0:y1, x0:x1] | instance[j, y0:y1, x0:x1]).sum()
-                    instance_overlap[i, j] = intersection/(area + 1e-12)
+                    mi = binary[i][y0:y1, x0:x1]
+                    mj = binary[j][y0:y1, x0:x1]
+
+                    intersection = (mi & mj).sum()
+                    union = (mi | mj).sum()
+                    instance_overlap[i, j] = intersection/(union + 1e-12)
                     instance_overlap[j, i] = instance_overlap[i, j]
 
             # non-max-suppression to remove overlapping segmentation
             score = proposals[index, 5]
-            index = list(np.argsort(-score))
+            sort_idx = list(np.argsort(-score))
 
             # https://www.pyimagesearch.com/2015/02/16/faster-non-maximum-suppression-python/
             keep = []
-            while len(index) > 0:
-                i = index[0]
+            while len(sort_idx) > 0:
+                i = sort_idx[0]
                 keep.append(i)
                 delete_index = list(np.where(instance_overlap[i] > overlap_threshold)[0])
-                index = [e for e in index if e not in delete_index]
-                #<todo> : merge?
+                sort_idx = [e for e in sort_idx if e not in delete_index]
+            # filter instances & proposals
+            num_keeps = len(keep)
+            for i in range(num_keeps):
+                k = keep[i]
+                multi_masks[np.where(binary[k])] = i + 1
+                mask_instances.append(instances[k].reshape(1, H, W))
 
-            for i, k in enumerate(keep):
-                multi_mask[np.where(instance[k])] = i+1
+                t = index[k]
+                b, x0, y0, x1, y1, score, label = proposals[t]
+                mask_proposals.append(np.array([b, x0, y0, x1, y1, score, label], np.float32))
 
-        multi_masks.append(multi_mask)
-    return multi_masks
+        if num_keeps==0:
+            mask_proposals = np.zeros((0,7  ),np.float32)
+            mask_instances = np.zeros((0,H,W),np.float32)
+        else:
+            mask_proposals = np.vstack(mask_proposals)
+            mask_instances = np.vstack(mask_instances)
+
+        b_mask_proposals.append(mask_proposals)
+        b_mask_instances.append(mask_instances)
+        b_multi_masks.append(multi_masks)
+
+    b_mask_proposals = Variable(torch.from_numpy(np.vstack(b_mask_proposals))).cuda()
+    return b_multi_masks, b_mask_instances, b_mask_proposals
 
 
 # ----------------------------- Label Target -----------------------------

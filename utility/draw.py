@@ -461,21 +461,6 @@ def draw_rpn_target_target1(cfg, image, window, target, target_weight, is_before
     return image
 
 
-if __name__ == '__main__':
-    print( '%s: calling main function ... ' % os.path.basename(__file__))
-
-    image = np.zeros((50,50,3), np.uint8)
-    cv2.rectangle(image, (0,0),(49,49), (0,0,255),1) #inclusive
-
-    image[8,8]=[255,255,255]
-
-    image_show('image',image,10)
-    cv2.waitKey(0)
-
-
-    print('\nsucess!')
-
-
 def multi_mask_to_color_overlay(multi_mask, image=None, color=None):
 
     height,width = multi_mask.shape[:2]
@@ -538,3 +523,36 @@ def mask_to_inner_contour(mask):
           | (pad[1:-1,1:-1] != pad[1:-1,2:])
     )
     return contour
+
+
+def draw_predict_mask(threshold, image, mask, detection):
+
+    H,W = image.shape[:2]
+
+    box_overlay     = image.copy()
+    contour_overlay = image.copy()
+    color_overlay   = np.zeros((H,W,3),np.uint8)
+
+    if len(detection)>0:
+        colors = matplotlib.cm.get_cmap('hot')
+        multi_mask = mask
+
+        for i,d in enumerate(detection):
+            mask = (multi_mask==i+1)
+            contour = mask_to_inner_contour(mask)
+            score   = d[5]
+            s       = max(0,(score-threshold)/(1-threshold))
+
+            color = colors(s)   #(0,1,0)  #
+            color = int(color[2]*255),int(color[1]*255),int(color[0]*255)
+            contour_overlay[contour] = color
+            color_overlay[mask]      = color
+            color_overlay[contour]   = [255,255,255]
+
+            x0,y0,x1,y1 = d[1:5].astype(np.int32)
+            cv2.rectangle(box_overlay, (x0,y0), (x1,y1), color, 1)
+
+    all = np.hstack([image, color_overlay, contour_overlay, box_overlay])
+    draw_shadow_text(all, 'threshold=%0.3f'%threshold,  (5,15),0.5, (255,255,255), 1)
+
+    return all
