@@ -114,9 +114,14 @@ def run_train():
         net.load_state_dict(torch.load(pretrain_file, map_location=lambda storage, loc: storage))
 
     # optimiser -------------------------------------------------
-    optimizer = optim.Adam(filter(lambda p: p.requires_grad, net.parameters()),
-                          lr=cfg.lr/cfg.iter_accum,
-                          amsgrad=True,
+    #optimizer = optim.Adam(filter(lambda p: p.requires_grad, net.parameters()),
+    #                      lr=cfg.lr/cfg.iter_accum,
+    #                      amsgrad=True,
+    #                      weight_decay=0.0001
+    #                      )
+    optimizer = optim.SGD(filter(lambda p: p.requires_grad, net.parameters()),
+                          lr=cfg.lr / cfg.iter_accum,
+                          momentum=0.9,
                           weight_decay=0.0001
                           )
     lr_scheduler = cfg.lr_scheduler

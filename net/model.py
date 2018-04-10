@@ -114,6 +114,7 @@ class MaskRcnnNet(nn.Module):
 
         return self.total_loss
 
+
     def forward_mask(self, images, rcnn_proposals):
         cfg  = self.cfg
         mode = self.mode
@@ -127,6 +128,7 @@ class MaskRcnnNet(nn.Module):
               self.mask_logits = data_parallel(self.mask_head, mask_crops)
               self.masks,  self.mask_instances, self.mask_proposals  = mask_nms(cfg, images, self.rcnn_proposals, self.mask_logits)
               self.detections = self.mask_proposals
+
 
     def set_mode(self, mode ):
         self.mode = mode
