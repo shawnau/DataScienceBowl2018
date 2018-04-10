@@ -75,7 +75,7 @@ class Configuration(object):
         self.rcnn_train_nms_overlap_threshold   = 0.8  # high for more proposals for mask
         self.rcnn_train_nms_min_size = 5
 
-        self.rcnn_test_nms_pre_score_threshold = 0.3
+        self.rcnn_test_nms_pre_score_threshold = 0.5
         self.rcnn_test_nms_overlap_threshold   = 0.5
         self.rcnn_test_nms_min_size = 5
 
@@ -101,22 +101,22 @@ class Configuration(object):
         self.train_split = 'train_black_white_497'
         self.valid_split = 'valid_black_white_44'
         self.pretrain = None
-        self.checkpoint = None
+        self.checkpoint = '00016000_model.pth'
 
         # optim -----------------------------------------------------------------
         self.lr = 0.01
         self.iter_accum = 1  # learning rate = lr/iter_accum
-        self.batch_size = 8
+        self.batch_size = 10
         self.num_iters = 35000
         self.iter_smooth = 20  # calculate smoothed loss over each 20 iter
         self.iter_valid = 100
-        self.iter_save = list(range(0, self.num_iters, 1000)) + [self.num_iters]
-        self.lr_scheduler = StepLR([ (0, 0.01),  (6000, 0.001),  (20000, 0.0001)])
+        self.iter_save = list(range(0, self.num_iters, 2000)) + [self.num_iters]
+        self.lr_scheduler = StepLR([ (0, 0.01),  (8000, 0.001),  (20000, 0.0001)])
 
         # validation  -----------------------------------------------------------
-        self.valid_checkpoint = '00016000_model.pth'
+        self.valid_checkpoint = None
         # submit ----------------------------------------------------------------
-        self.submit_checkpoint = '00016000_model.pth'
+        self.submit_checkpoint = None
         self.submit_split = 'test_black_white_53'
         self.submit_csv_name = 'submission-BW53-only.csv'
 

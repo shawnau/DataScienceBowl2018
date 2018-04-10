@@ -13,14 +13,14 @@ WIDTH, HEIGHT = 256, 256
 
 def train_augment(image, multi_mask, meta, index):
 
-    image, multi_mask = \
-        random_shift_scale_rotate_transform(
-            image, multi_mask,
-            shift_limit=[0, 0],
-            scale_limit=[1/2, 2],
-            rotate_limit=[-45, 45],
-            borderMode=cv2.BORDER_REFLECT_101,
-            u=0.5)
+    #image, multi_mask = \
+    #    random_shift_scale_rotate_transform(
+    #        image, multi_mask,
+    #        shift_limit=[0, 0],
+    #        scale_limit=[1/2, 2],
+    #        rotate_limit=[-45, 45],
+    #        borderMode=cv2.BORDER_REFLECT_101,
+    #        u=0.5)
 
     image, multi_mask = random_crop_transform(image, multi_mask, WIDTH, HEIGHT, u=0.5)
     image, multi_mask = random_horizontal_flip_transform(image, multi_mask, 0.5)
@@ -110,8 +110,8 @@ def run_train():
     if cfg.pretrain is not None:
         pretrain_file = os.path.join(f.checkpoint_dir, cfg.pretrain)
         log.write('\tpretrain_file = %s\n' % pretrain_file)
-        # net.load_pretrain(pretrain_file, skip)
-        net.load_state_dict(torch.load(pretrain_file, map_location=lambda storage, loc: storage))
+        net.load_pretrain(pretrain_file, skip)
+        #net.load_state_dict(torch.load(pretrain_file, map_location=lambda storage, loc: storage))
 
     # optimiser -------------------------------------------------
     #optimizer = optim.Adam(filter(lambda p: p.requires_grad, net.parameters()),
