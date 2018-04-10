@@ -5,7 +5,7 @@ from configuration import Configuration
 from dataset.folder import TrainFolder
 from utility.file import Logger
 from net.model import MaskRcnnNet
-from augments import *
+from postprocess.augments import *
 
 
 
@@ -15,7 +15,7 @@ def run_predict_mask_only():
     out_dir = f_eval.folder_name
     initial_checkpoint = os.path.join(f_eval.checkpoint_dir, cfg.valid_checkpoint)
 
-    propsal_dir = os.path.join(out_dir, 'predict', 'xx_ensemble', 'proposal', 'npys')
+    propsal_dir = os.path.join(out_dir, 'predict', 'box_ensemble', 'proposal', 'npys')
 
     # augment -----------------------------------------------------------------------------------------------------
     augments=[
@@ -70,7 +70,7 @@ def run_predict_mask_only():
     for tag_name, do_test_augment, undo_test_augment, params in augments:
 
         ## setup  --------------------------
-        tag = 'xx_ensemble_%s'%tag_name   ##tag = 'test1_ids_gray2_53-00011000_model'
+        tag = 'mask_ensemble_%s'%tag_name   ##tag = 'test1_ids_gray2_53-00011000_model'
         os.makedirs(os.path.join(out_dir, 'predict', tag, 'overlays'), exist_ok=True)
         os.makedirs(os.path.join(out_dir, 'predict', tag, 'predicts'), exist_ok=True)
         os.makedirs(os.path.join(out_dir, 'predict', tag, 'rcnn_proposals'), exist_ok=True)

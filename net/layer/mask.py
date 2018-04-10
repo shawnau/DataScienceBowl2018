@@ -71,9 +71,6 @@ def instance_to_binary(instance, threshold, min_area):
             else:
                 if max_area<min_area:
                     binary[label==c+1]=0
-
-    #<todo> fill holes? ---
-
     return binary
 
 

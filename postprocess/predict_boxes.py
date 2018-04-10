@@ -5,7 +5,7 @@ from configuration import Configuration
 from dataset.folder import TrainFolder
 from utility.file import Logger
 from net.model import MaskRcnnNet
-from augments import *
+from postprocess.augments import *
 
 
 
@@ -58,7 +58,6 @@ def run_predict():
     log.write('\n')
 
 
-
     ## dataset ----------------------------------------
     log.write('** dataset setting **\n')
 
@@ -71,7 +70,7 @@ def run_predict():
     for tag_name, do_test_augment, undo_test_augment, params in augments:
 
         ## setup  --------------------------
-        tag = 'xx_%s'%tag_name
+        tag = 'box_%s'%tag_name
         os.makedirs(os.path.join(out_dir, 'predict', tag, 'overlays'), exist_ok=True)
         os.makedirs(os.path.join(out_dir, 'predict', tag, 'predicts'), exist_ok=True)
         os.makedirs(os.path.join(out_dir, 'predict', tag, 'rcnn_proposals'), exist_ok=True)

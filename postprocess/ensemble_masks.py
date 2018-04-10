@@ -5,6 +5,7 @@ from dataset.reader import *
 from dataset.folder import TrainFolder
 from utility.draw import *
 from net.lib.nms.cython_nms.cython_nms import cython_nms
+from net.layer.mask import instance_to_binary
 
 class Cluster(object):
     def __init__(self):
@@ -112,27 +113,27 @@ def do_clustering( proposals, instances, threshold=0.5, type='union'):
     return clusters
 
 
-def run_make_l2_data():
+def ensemble_masks():
     cfg = Configuration()
     f_eval = TrainFolder(os.path.join(cfg.result_dir, cfg.model_name))
-    out_dir = os.path.join(f_eval.folder_name, 'predict', 'xx_l2_data')
+    out_dir = os.path.join(f_eval.folder_name, 'predict', 'ensemble_all')
 
     ensemble_dirs = [
-        'xx_normal',
-        'xx_flip_transpose_1',
-        'xx_flip_transpose_2',
-        'xx_flip_transpose_3',
-        'xx_flip_transpose_4',
-        'xx_flip_transpose_5',
-        'xx_flip_transpose_6',
-        'xx_flip_transpose_7',
-        'xx_scale_0.8',
-        'xx_scale_1.2',
-        'xx_scale_0.5',
-        'xx_scale_1.8',
+        'normal',
+        'flip_transpose_1',
+        'flip_transpose_2',
+        'flip_transpose_3',
+        'flip_transpose_4',
+        'flip_transpose_5',
+        'flip_transpose_6',
+        'flip_transpose_7',
+        'scale_0.8',
+        'scale_1.2',
+        'scale_0.5',
+        'scale_1.8',
     ]
     #ensemble_dirs = [os.path.join(f_eval.folder_name, 'predict', e) for e in ensemble_dirs]
-    ensemble_dirs = [os.path.join(f_eval.folder_name, 'predict', e.replace('xx_', 'xx_ensemble_')) for e in ensemble_dirs]
+    ensemble_dirs = [os.path.join(f_eval.folder_name, 'predict', 'mask_ensemble_'+e) for e in ensemble_dirs]
 
     #setup ---------------------------------------
     os.makedirs(out_dir +'/ensemble_data_overlays', exist_ok=True)
@@ -162,6 +163,7 @@ def run_make_l2_data():
 
         # ensemble instance
         ensemble_instances      = []
+        ensemble_binary         = []
         ensemble_instance_edges = []
         for c in clusters:
             num_members = len(c.members)
@@ -179,9 +181,16 @@ def run_make_l2_data():
                 ensemble_instance += m
                 ensemble_instance_edge += diff
 
+            ensemble_avg = ensemble_instance / num_members
+            binary = instance_to_binary(ensemble_avg,
+                                        cfg.mask_test_mask_threshold,
+                                        cfg.mask_test_mask_min_area)
+
+            ensemble_binary.append(binary)
             ensemble_instances.append(ensemble_instance)
             ensemble_instance_edges.append(ensemble_instance_edge)
 
+        multi_mask = instance_to_multi_mask(np.array(ensemble_binary))
         ensemble_instances = np.array(ensemble_instances)
         ensemble_instance_edges = np.array(ensemble_instance_edges)
 
@@ -192,16 +201,16 @@ def run_make_l2_data():
         gray1 = (sum_instance/sum_instance.max()*255).astype(np.uint8)
         gray2 = (sum_instance_edge/sum_instance_edge.max()*255).astype(np.uint8)
         all = np.hstack([gray0,gray1,gray2])
-        #image_show('all',all,1)
 
         #save as train data
         data  = cv2.merge((gray0, gray1, gray2))
 
         cv2.imwrite(os.path.join(out_dir, 'ensemble_data_overlays', '%s.png'%name), all)
         cv2.imwrite(os.path.join(out_dir, 'ensemble_data',          '%s.png'%name), data)
+        np.save(    os.path.join(out_dir, 'ensemble_masks',         '%s.npy'%name), multi_mask)
 
 
 if __name__ == '__main__':
     print( '%s: calling main function ... ' % os.path.basename(__file__))
-    run_make_l2_data()
+    ensemble_masks()
     print('\nsucess!')

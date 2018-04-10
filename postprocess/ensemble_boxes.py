@@ -65,23 +65,23 @@ def make_tight_proposal(proposal, border, width, height):
 def run_ensemble_box():
     cfg = Configuration()
     f_eval = TrainFolder(os.path.join(cfg.result_dir, cfg.model_name))
-    out_dir = os.path.join(f_eval.folder_name, 'predict', 'xx_ensemble')
+    out_dir = os.path.join(f_eval.folder_name, 'predict', 'box_ensemble')
 
     ensemble_dirs = [
-        'xx_normal',
-        'xx_flip_transpose_1',
-        'xx_flip_transpose_2',
-        'xx_flip_transpose_3',
-        'xx_flip_transpose_4',
-        'xx_flip_transpose_5',
-        'xx_flip_transpose_6',
-        'xx_flip_transpose_7',
-        'xx_scale_0.8',
-        'xx_scale_1.2',
-        'xx_scale_0.5',
-        'xx_scale_1.8',
+        'normal',
+        'flip_transpose_1',
+        'flip_transpose_2',
+        'flip_transpose_3',
+        'flip_transpose_4',
+        'flip_transpose_5',
+        'flip_transpose_6',
+        'flip_transpose_7',
+        'scale_0.8',
+        'scale_1.2',
+        'scale_0.5',
+        'scale_1.8',
     ]
-    ensemble_dirs = [ os.path.join(f_eval.folder_name, 'predict', e) for e in ensemble_dirs ]
+    ensemble_dirs = [ os.path.join(f_eval.folder_name, 'predict', 'box_'+e) for e in ensemble_dirs ]
 
     #setup ---------------------------------------
     os.makedirs(os.path.join(out_dir, 'proposal', 'overlays'), exist_ok=True)
@@ -91,7 +91,6 @@ def run_ensemble_box():
     names = [n.split('/')[-2]for n in names]
     sorted(names)
 
-    num_ensemble = len(ensemble_dirs)
     for name in names:
         print(name)
         image_file = os.path.join(ensemble_dirs[0], 'overlays', name, '%s.png'%name)
