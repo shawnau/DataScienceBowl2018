@@ -1,6 +1,6 @@
 import os, sys
 import glob
-sys.path.append(os.path.dirname(__file__))
+sys.path.append('..')
 from configuration import Configuration
 from dataset.reader import *
 from dataset.folder import TrainFolder
