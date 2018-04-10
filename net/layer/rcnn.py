@@ -53,7 +53,7 @@ def rcnn_nms(cfg, mode, images, rpn_proposals, logits, deltas):
     :param logits:
     :param deltas:
     :return:
-        [i, x0, y0, x1, y1, score, label]
+        [i, x0, y0, x1, y1, score, label, 0]
     """
     if mode in ['train']:
         nms_prob_threshold = cfg.rcnn_train_nms_pre_score_threshold
@@ -81,7 +81,7 @@ def rcnn_nms(cfg, mode, images, rpn_proposals, logits, deltas):
     # non-max suppression
     rcnn_proposals = []
     for b in range(batch_size):
-        pic_proposals = [np.empty((0, 7), np.float32)]
+        pic_proposals = [np.empty((0, 8), np.float32)]
         select_batch = np.where(rpn_proposals[:, 0] == b)[0]
         if len(select_batch) > 0:
             proposal = rpn_proposals[select_batch]
@@ -104,11 +104,12 @@ def rcnn_nms(cfg, mode, images, rpn_proposals, logits, deltas):
                         p = p[keep]
                         keep = gpu_nms(np.hstack((box, p)), nms_overlap_threshold)
 
-                        detection = np.zeros((len(keep), 7), np.float32)
+                        detection = np.zeros((len(keep), 8), np.float32)
                         detection[:, 0] = b
                         detection[:, 1:5] = np.around(box[keep], 0)
                         detection[:, 5] = p[keep, 0]  # p[:, 0]
                         detection[:, 6] = c
+                        detection[:, 7] = 0 #spare
                         pic_proposals.append(detection)
 
         pic_proposals = np.vstack(pic_proposals)
@@ -130,13 +131,14 @@ def _add_truth_box_to_proposal(proposal, img_idx, truth_box, truth_label, score=
     :return:
     """
     if len(truth_box) != 0:
-        truth = np.zeros((len(truth_box), 7), np.float32)
+        truth = np.zeros((len(truth_box), 8), np.float32)
         truth[:, 0] = img_idx
         truth[:, 1:5] = truth_box
         truth[:, 5] = score  # 1
         truth[:, 6] = truth_label
+        truth[:, 7] = 0  #spare
     else:
-        truth = np.zeros((0, 7), np.float32)
+        truth = np.zeros((0, 8), np.float32)
 
     sampled_proposal = np.vstack([proposal, truth])
     return sampled_proposal
@@ -148,7 +150,7 @@ def _make_one_rcnn_target(cfg, image, proposals, truth_boxes, truth_labels):
     https://github.com/ruotianluo/pytorch-faster-rcnn
     :param image: input image
     :param proposals: i is the index if image in batch:
-        [i, x0, y0, x1, y1, score, label]
+        [i, x0, y0, x1, y1, score, label, 0]
     :param truth_boxes: list of boxes, e.g.
         [x0, y0, x1, y1]
     :param truth_labels: label of each truth box
@@ -158,7 +160,7 @@ def _make_one_rcnn_target(cfg, image, proposals, truth_boxes, truth_labels):
         sampled_assign: which truth box is assigned to the sampled proposal
         sampled_target: bboxes' offsets from sampled proposals to truth boxes
     """
-    sampled_proposal = Variable(torch.FloatTensor((0, 7))).cuda()
+    sampled_proposal = Variable(torch.FloatTensor((0, 8))).cuda()
     sampled_label = Variable(torch.LongTensor((0, 1))).cuda()
     sampled_assign = np.array((0, 1), np.int32)
     sampled_target = Variable(torch.FloatTensor((0, 4))).cuda()
@@ -258,7 +260,7 @@ def make_rcnn_target(cfg, images, proposals, truth_boxes, truth_labels):
     """
     a sampled subset of proposals, with it's_train corresponding truth label and offsets
     :param images: (B, 3, H, W), BGR mode
-    :param proposals: (B, 7), [i, x0, y0, x1, y1, score, label]
+    :param proposals: (B, 8), [i, x0, y0, x1, y1, score, label, 0]
     :param truth_boxes: (B, _, 4)
     :param truth_labels: (B, _, 1)
     :return:
@@ -287,7 +289,7 @@ def make_rcnn_target(cfg, images, proposals, truth_boxes, truth_labels):
 
         if len(img_truth_boxes) != 0:
             if len(proposals) == 0:
-                img_proposals = np.zeros((0, 7), np.float32)
+                img_proposals = np.zeros((0, 8), np.float32)
             else:
                 img_proposals = proposals[proposals[:, 0] == img_idx]
 

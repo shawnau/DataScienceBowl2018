@@ -45,7 +45,7 @@ work_dir = os.path.join(cfg.result_dir, cfg.model_name)
 f_submit = TrainFolder(work_dir)
 
 
-rows = read_list_from_file(os.path.join(cfg.split_dir, 'test_ids_all_65'), comment='#')
+rows = read_list_from_file(os.path.join(cfg.split_dir, cfg.submit_split), comment='#')
 all_test_ids = [x.split('/')[-1] for x in rows]
 
 
@@ -143,6 +143,7 @@ def run_submit():
         # save results ---------------------------------------
         batch_size = len(indices)
         assert(batch_size == 1)
+        revert(net, images)
 
         batch_size, C, H, W = inputs.size()
         masks = net.masks

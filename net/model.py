@@ -30,8 +30,8 @@ class MaskRcnnNet(nn.Module):
         features = self.feature_net(images)
 
         # rpn proposals -------------------------------------------
-        # self.rpn_logits_flat, self.rpn_deltas_flat = self.rpn_head(features)
-        # self.anchor_boxes = fpn_make_anchor_boxes(features, self.cfg)
+        self.rpn_logits_flat, self.rpn_deltas_flat = self.rpn_head(features)
+        self.anchor_boxes = fpn_make_anchor_boxes(features, self.cfg)
         self.rpn_proposals = rpn_nms(self.cfg, self.mode, images,
                                      self.anchor_boxes,
                                      self.rpn_logits_flat,

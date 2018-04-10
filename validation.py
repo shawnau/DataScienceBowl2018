@@ -5,6 +5,30 @@ from utility.metric import compute_average_precision_for_mask
 sys.path.append(os.path.dirname(__file__))
 from train import *
 
+def revert(net, images):
+    def torch_clip_proposals (proposals, index, width, height):
+        boxes = torch.stack((
+             proposals[index,0],
+             proposals[index,1].clamp(0, width  - 1),
+             proposals[index,2].clamp(0, height - 1),
+             proposals[index,3].clamp(0, width  - 1),
+             proposals[index,4].clamp(0, height - 1),
+             proposals[index,5],
+             proposals[index,6],
+        ), 1)
+        return proposals
+
+    batch_size = len(images)
+    for b in range(batch_size):
+        image  = images[b]
+        height,width  = image.shape[:2]
+        index = (net.rcnn_proposals[:,0]==b).nonzero().view(-1)
+        net.detections   = torch_clip_proposals (net.rcnn_proposals, index, width, height)
+
+        net.masks[b] = net.masks[b][:height,:width]
+
+    return net, image
+
 
 def eval_augment(image, multi_mask, meta, index):
     pad_image = pad_to_factor(image, factor=16)
@@ -85,8 +109,9 @@ def run_evaluate():
         net.set_mode('test')
         with torch.no_grad():
             inputs = Variable(inputs).cuda()
-            net(inputs, truth_boxes,  truth_labels, truth_instances)
+            net.forward(inputs, truth_boxes,  truth_labels, truth_instances)
         # save results ---------------------------------------
+        revert(net, images)
         batch_size = len(indices)
         assert(batch_size == 1)  # currently support batch_size==1 only
         batch_size,C,H,W = inputs.size()

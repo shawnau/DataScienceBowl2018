@@ -5,7 +5,7 @@ from configuration import Configuration
 from dataset.folder import TrainFolder
 from utility.file import Logger
 from net.model import MaskRcnnNet
-from postprocess.augments import *
+from augments import *
 
 
 
@@ -31,7 +31,7 @@ def run_predict():
         ('scale_1.8',        do_test_augment_scale,  undo_test_augment_scale,     { 'scale_x': 1.8, 'scale_y': 1.8  } ),
     ]
 
-    split = 'test_black_white_53'
+    split = 'valid_test'#'test_black_white_53'
 
 
     #start experiments here! ###########################################################

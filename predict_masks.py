@@ -5,7 +5,7 @@ from configuration import Configuration
 from dataset.folder import TrainFolder
 from utility.file import Logger
 from net.model import MaskRcnnNet
-from postprocess.augments import *
+from augments import *
 
 
 
@@ -33,7 +33,7 @@ def run_predict_mask_only():
         ('scale_1.8',        do_test_augment_scale,  undo_test_augment_scale,     { 'scale_x': 1.8, 'scale_y': 1.8  } ),
     ]
 
-    split = 'test_black_white_53'
+    split = 'valid_test'#'test_black_white_53'
 
 
     #start experiments here! ###########################################################
@@ -99,7 +99,7 @@ def run_predict_mask_only():
             rcnn_proposal, detection, mask, instance  = undo_test_augment(net, image, **params)
 
             ##save results ---------------------------------------
-            np.save(os.path.join(out_dir, 'predict', tag, 'npys',           '%s.npy'%name),mask)
+            np.save(os.path.join(out_dir, 'predict', tag, 'masks',          '%s.npy'%name),mask)
             np.save(os.path.join(out_dir, 'predict', tag, 'detections',     '%s.npy'%name),detection)
             np.save(os.path.join(out_dir, 'predict', tag, 'rcnn_proposals', '%s.npy'%name),rcnn_proposal)
             np.save(os.path.join(out_dir, 'predict', tag, 'instances',      '%s.npy'%name),instance)
@@ -124,7 +124,7 @@ def run_predict_mask_only():
                     mask_score = cv2.cvtColor((mask_score/mask_score.max()*255).astype(np.uint8),cv2.COLOR_GRAY2BGR)
 
                     all = np.hstack((image, contour_overlay, color1_overlay, mask_score)).astype(np.uint8)
-                    image_show('overlays',all)
+                    #image_show('overlays',all)
 
                     #psd
                     os.makedirs(os.path.join(out_dir, 'predict', 'overlays'), exist_ok=True)

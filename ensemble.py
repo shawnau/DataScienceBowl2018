@@ -223,7 +223,7 @@ def run_ensemble_box():
             tight_detections.append(tight_detection)
 
             for n in range(len(detection)):
-                _,x0,y0,x1,y1,score,label = tight_detection[n]
+                _,x0,y0,x1,y1,score,label,k = tight_detection[n]
 
                 color = to_color((score-0.5)/0.5,(0,255,255))
                 cv2.rectangle(image2, (x0,y0), (x1,y1), color, 1)
@@ -336,13 +336,13 @@ def run_make_l2_data():
         'xx_scale_1.8',
     ]
     #ensemble_dirs = [os.path.join(f_eval.folder_name, 'predict', e) for e in ensemble_dirs]
-    ensemble_dirs = [os.path.join(f_eval.folder_name, 'predict', 'xx_ensemble_'+e) for e in ensemble_dirs]
+    ensemble_dirs = [os.path.join(f_eval.folder_name, 'predict', e.replace('xx_', 'xx_ensemble_')) for e in ensemble_dirs]
 
     #setup ---------------------------------------
     os.makedirs(out_dir +'/ensemble_data_overlays', exist_ok=True)
     os.makedirs(out_dir +'/ensemble_data', exist_ok=True)
 
-    split = 'test_black_white_53'  #'BBBC006'   #'valid1_ids_gray2_43' #
+    split = 'valid_test'#'test_black_white_53'  #'BBBC006'   #'valid1_ids_gray2_43' #
     ids = read_list_from_file(os.path.join(cfg.split_dir, split), comment='#')
 
     for i in range(len(ids)):
@@ -407,5 +407,6 @@ def run_make_l2_data():
 
 if __name__ == '__main__':
     print( '%s: calling main function ... ' % os.path.basename(__file__))
-    run_ensemble_box()
+    #run_ensemble_box()
+    run_make_l2_data()
     print('\nsucess!')

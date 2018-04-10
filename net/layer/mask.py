@@ -85,7 +85,7 @@ def mask_nms(cfg, images, proposals, mask_logits):
     #<todo> better nms for mask
     :param cfg:
     :param images: (B, C, H, W)
-    :param proposals: (B, 7) [i, x0, y0, x1, y1, score, label]
+    :param proposals: (B, 8) [i, x0, y0, x1, y1, score, label, z]
     :param mask_logits: (B, num_classes, 2*crop_size, 2*crop_size)
     :return:
         b_multi_masks: (B, H, W) masks labelled with 1,2,...N (total number of masks)
@@ -116,7 +116,7 @@ def mask_nms(cfg, images, proposals, mask_logits):
             instances = []    # all instances
             boxes = []        # all boxes
             for i in index:
-                mask = np.zeros((H, W), np.bool)
+                mask = np.zeros((H, W), np.float32)
 
                 x0, y0, x1, y1 = proposals[i, 1:5].astype(np.int32)
                 h, w = y1-y0+1, x1-x0+1
@@ -175,11 +175,11 @@ def mask_nms(cfg, images, proposals, mask_logits):
                 mask_instances.append(instances[k].reshape(1, H, W))
 
                 t = index[k]
-                b, x0, y0, x1, y1, score, label = proposals[t]
-                mask_proposals.append(np.array([b, x0, y0, x1, y1, score, label], np.float32))
+                b, x0, y0, x1, y1, score, label, _ = proposals[t]
+                mask_proposals.append(np.array([b, x0, y0, x1, y1, score, label, t], np.float32))
 
         if num_keeps==0:
-            mask_proposals = np.zeros((0,7  ),np.float32)
+            mask_proposals = np.zeros((0,8  ),np.float32)
             mask_instances = np.zeros((0,H,W),np.float32)
         else:
             mask_proposals = np.vstack(mask_proposals)
@@ -196,13 +196,14 @@ def mask_nms(cfg, images, proposals, mask_logits):
 # ----------------------------- Label Target -----------------------------
 def _add_truth_box_to_proposal(cfg, proposal, b, truth_box, truth_label, score=-1):
     if len(truth_box) !=0:
-        truth = np.zeros((len(truth_box),7),np.float32)
+        truth = np.zeros((len(truth_box),8),np.float32)
         truth[:,0  ] = b
         truth[:,1:5] = truth_box
         truth[:,5  ] = score #1  #
         truth[:,6  ] = truth_label
+        truth[:,7  ] = 0  #spare
     else:
-        truth = np.zeros((0,7),np.float32)
+        truth = np.zeros((0,8),np.float32)
 
     sampled_proposal = np.vstack([proposal,truth])
     return sampled_proposal
@@ -273,7 +274,7 @@ def _make_one_mask_target(cfg, mode, image, proposals, truth_box, truth_label, t
         sampled_instance: cropped instance, matching maskhead's_train output
         sampled_assign: index of truth_box each proposals belongs to
     """
-    sampled_proposal = Variable(torch.FloatTensor(0, 7)).cuda()
+    sampled_proposal = Variable(torch.FloatTensor(0, 8)).cuda()
     sampled_label    = Variable(torch.LongTensor (0, 1)).cuda()
     sampled_instance = Variable(torch.FloatTensor(0, 1, 1)).cuda()
 
@@ -371,7 +372,7 @@ def make_mask_target(cfg, mode, images, proposals, truth_boxes, truth_labels, tr
 
         if len(truth_box) != 0:
             if len(proposals)==0:
-                proposal = np.zeros((0,7),np.float32)
+                proposal = np.zeros((0,8),np.float32)
             else:
                 proposal = proposals[proposals[:,0]==b]
 

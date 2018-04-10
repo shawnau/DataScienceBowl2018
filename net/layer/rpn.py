@@ -219,7 +219,7 @@ def rpn_nms(cfg, mode, images, anchor_boxes, logits_flat, deltas_flat):
     :param deltas_flat: (B, N, 2, 4)
                [[[t1, t2, t3, t4], [t1, t2, t3, t4]], ...]
     :return: all proposals in a batch. e.g.
-        [i, x0, y0, x1, y1, score, label]
+        [i, x0, y0, x1, y1, score, label, 0]
         proposals[0]:   image idx in the batch
         proposals[1:5]: bbox
         proposals[5]:   probability of foreground (background skipped)
@@ -248,7 +248,7 @@ def rpn_nms(cfg, mode, images, anchor_boxes, logits_flat, deltas_flat):
     # non-max suppression
     rpn_proposals = []
     for b in range(batch_size):
-        pic_proposals = [np.empty((0, 7), np.float32)]
+        pic_proposals = [np.empty((0, 8), np.float32)]
         prob = np_softmax(logits[b])
         delta = deltas[b]
 
@@ -269,11 +269,12 @@ def rpn_nms(cfg, mode, images, anchor_boxes, logits_flat, deltas_flat):
                     p = p[keep]
                     keep = gpu_nms(np.hstack((box, p)), nms_overlap_threshold)
 
-                    proposal = np.zeros((len(keep), 7), np.float32)
+                    proposal = np.zeros((len(keep), 8), np.float32)
                     proposal[:, 0] = b
                     proposal[:, 1:5] = np.around(box[keep], 0)
                     proposal[:, 5] = p[keep, 0]
                     proposal[:, 6] = c
+                    proposal[:, 7] = 0  # spare
                     pic_proposals.append(proposal)
 
         pic_proposals = np.vstack(pic_proposals)

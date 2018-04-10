@@ -65,7 +65,7 @@ class Configuration(object):
 
         # rcnn ------------------------------------------------------------------
         self.rcnn_crop_size         = 14
-        self.rcnn_train_batch_size  = 128  # per image
+        self.rcnn_train_batch_size  = 64  # per image
         self.rcnn_train_fg_fraction = 0.5
         self.rcnn_train_fg_thresh_low  = 0.5
         self.rcnn_train_bg_thresh_high = 0.5
@@ -81,14 +81,14 @@ class Configuration(object):
 
         # mask ------------------------------------------------------------------
         self.mask_crop_size            = 14  # input of mask head
-        self.mask_train_batch_size     = 128  # per image
+        self.mask_train_batch_size     = 64  # per image
         self.mask_size                 = 28  # out put of mask head
         self.mask_train_min_size       = 5
         self.mask_train_fg_thresh_low  = self.rpn_train_fg_thresh_low
 
         self.mask_test_nms_pre_score_threshold = 0.4
         self.mask_test_nms_overlap_threshold = 0.1
-        self.mask_test_mask_threshold  = 0.5
+        self.mask_test_mask_threshold  = 0.4
         self.mask_test_mask_min_area = 8
 
         # annotation
@@ -96,11 +96,11 @@ class Configuration(object):
         self.annotation_test_split = 'test_all_65'
 
         # training --------------------------------------------------------------
-        self.model_name = '4-04'
+        self.model_name = '4-10'
 
         self.train_split = 'train_black_white_497'
         self.valid_split = 'valid_black_white_44'
-        self.pretrain = '00014000_model.pth'
+        self.pretrain = None
         self.checkpoint = None
 
         # optim -----------------------------------------------------------------
@@ -114,9 +114,9 @@ class Configuration(object):
         self.lr_scheduler = StepLR([ (0, 0.01),  (6000, 0.001),  (20000, 0.0001)])
 
         # validation  -----------------------------------------------------------
-        self.valid_checkpoint = None
+        self.valid_checkpoint = '00016000_model.pth'
         # submit ----------------------------------------------------------------
-        self.submit_checkpoint = None
+        self.submit_checkpoint = '00016000_model.pth'
         self.submit_split = 'test_black_white_53'
         self.submit_csv_name = 'submission-BW53-only.csv'
 
