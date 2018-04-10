@@ -18,8 +18,8 @@ def draw_proposal(image,proposal):
 
 def scale_to_factor(image, scale_x, scale_y, factor=16):
     height,width = image.shape[:2]
-    h = math.ceil(scale_x*height/factor)*factor
-    w = math.ceil(scale_y*width/factor)*factor
+    h = math.ceil(scale_y*height/factor)*factor
+    w = math.ceil(scale_x*width/factor)*factor
     image = cv2.resize(image,(w,h))
     return image
 
