@@ -118,22 +118,8 @@ def ensemble_masks():
     f_eval = TrainFolder(os.path.join(cfg.result_dir, cfg.model_name))
     out_dir = os.path.join(f_eval.folder_name, 'predict', 'ensemble_all')
 
-    ensemble_dirs = [
-        'normal',
-        'flip_transpose_1',
-        'flip_transpose_2',
-        'flip_transpose_3',
-        'flip_transpose_4',
-        'flip_transpose_5',
-        'flip_transpose_6',
-        'flip_transpose_7',
-        'scale_0.8',
-        'scale_1.2',
-        'scale_0.5',
-        'scale_1.8',
-    ]
     #ensemble_dirs = [os.path.join(f_eval.folder_name, 'predict', e) for e in ensemble_dirs]
-    ensemble_dirs = [os.path.join(f_eval.folder_name, 'predict', 'mask_ensemble_'+e) for e in ensemble_dirs]
+    ensemble_dirs = [os.path.join(f_eval.folder_name, 'predict', 'mask_ensemble_'+e) for e in cfg.test_augment_names]
 
     #setup ---------------------------------------
     os.makedirs(out_dir +'/ensemble_data_overlays', exist_ok=True)

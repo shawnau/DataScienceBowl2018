@@ -1,6 +1,8 @@
 import os
 import configparser
 from utility.scheduler import StepLR
+from postprocess.augments import *
+
 
 class Configuration(object):
 
@@ -119,6 +121,23 @@ class Configuration(object):
         self.submit_checkpoint = None
         self.submit_split = None#'test_black_white_53'
         self.submit_csv_name = None#'submission-BW53-only.csv'
+
+        # test time augments
+        self.test_augments = [
+            ('normal', do_test_augment_identity, undo_test_augment_identity, {}),
+            ('flip_transpose_1', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type': 1, }),
+            ('flip_transpose_2', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type': 2, }),
+            ('flip_transpose_3', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type': 3, }),
+            ('flip_transpose_4', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type': 4, }),
+            ('flip_transpose_5', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type': 5, }),
+            ('flip_transpose_6', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type': 6, }),
+            ('flip_transpose_7', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type': 7, }),
+            ('scale_0.8', do_test_augment_scale, undo_test_augment_scale, {'scale_x': 0.8, 'scale_y': 0.8}),
+            ('scale_1.2', do_test_augment_scale, undo_test_augment_scale, {'scale_x': 1.2, 'scale_y': 1.2}),
+            ('scale_0.5', do_test_augment_scale, undo_test_augment_scale, {'scale_x': 0.5, 'scale_y': 0.5}),
+            ('scale_1.8', do_test_augment_scale, undo_test_augment_scale, {'scale_x': 1.8, 'scale_y': 1.8}),
+        ]
+        self.test_augment_names = [t[0] for t in self.test_augments]
 
     def __repr__(self):
         d = self.__dict__.copy()

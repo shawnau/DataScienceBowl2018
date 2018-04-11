@@ -16,21 +16,6 @@ def run_predict():
     initial_checkpoint = os.path.join(f_eval.checkpoint_dir, cfg.valid_checkpoint)
 
     # augment -----------------------------------------------------------------------------------------------------
-    augments=[
-        ('normal',           do_test_augment_identity,       undo_test_augment_identity,       {         } ),
-        ('flip_transpose_1', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type':1,} ),
-        ('flip_transpose_2', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type':2,} ),
-        ('flip_transpose_3', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type':3,} ),
-        ('flip_transpose_4', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type':4,} ),
-        ('flip_transpose_5', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type':5,} ),
-        ('flip_transpose_6', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type':6,} ),
-        ('flip_transpose_7', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type':7,} ),
-        ('scale_0.8',        do_test_augment_scale,  undo_test_augment_scale,     { 'scale_x': 0.8, 'scale_y': 0.8  } ),
-        ('scale_1.2',        do_test_augment_scale,  undo_test_augment_scale,     { 'scale_x': 1.2, 'scale_y': 1.2  } ),
-        ('scale_0.5',        do_test_augment_scale,  undo_test_augment_scale,     { 'scale_x': 0.5, 'scale_y': 0.5  } ),
-        ('scale_1.8',        do_test_augment_scale,  undo_test_augment_scale,     { 'scale_x': 1.8, 'scale_y': 1.8  } ),
-    ]
-
     split = cfg.valid_split#'valid_black_white_44'#'test_black_white_53' # 
 
 
@@ -67,7 +52,7 @@ def run_predict():
     log.write('\n')
 
 
-    for tag_name, do_test_augment, undo_test_augment, params in augments:
+    for tag_name, do_test_augment, undo_test_augment, params in cfg.test_augments:
 
         ## setup  --------------------------
         tag = 'box_%s'%tag_name
