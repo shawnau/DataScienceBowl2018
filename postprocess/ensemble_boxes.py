@@ -83,18 +83,17 @@ def run_ensemble_box():
     ]
     ensemble_dirs = [ os.path.join(f_eval.folder_name, 'predict', 'box_'+e) for e in ensemble_dirs ]
 
+    split = cfg.valid_split
+    ids = read_list_from_file(os.path.join(cfg.split_dir, split), comment='#')
+    
     #setup ---------------------------------------
     os.makedirs(os.path.join(out_dir, 'proposal', 'overlays'), exist_ok=True)
     os.makedirs(os.path.join(out_dir, 'proposal', 'npys'), exist_ok=True)
-
-    names = glob.glob(ensemble_dirs[0] + '/overlays/*/')
-    names = [n.split('/')[-2]for n in names]
-    sorted(names)
-
-    for name in names:
+    
+    for row in ids:
+        folder, name = row.split('/')[-2:]
         print(name)
-        image_file = os.path.join(ensemble_dirs[0], 'overlays', name, '%s.png'%name)
-        image = cv2.imread(image_file,cv2.IMREAD_COLOR)
+        image = cv2.imread(os.path.join(cfg.data_dir, folder, 'images', '%s.png' % name), cv2.IMREAD_COLOR)
         height, width= image.shape[:2]
 
         image1 = image.copy()

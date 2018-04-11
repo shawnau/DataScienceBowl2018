@@ -139,7 +139,7 @@ def ensemble_masks():
     os.makedirs(out_dir +'/ensemble_data_overlays', exist_ok=True)
     os.makedirs(out_dir +'/ensemble_data', exist_ok=True)
 
-    split = 'valid_test'#'test_black_white_53'  #'BBBC006'   #'valid1_ids_gray2_43' #
+    split = cfg.valid_split#'test_black_white_53'
     ids = read_list_from_file(os.path.join(cfg.split_dir, split), comment='#')
 
     for i in range(len(ids)):

@@ -98,10 +98,10 @@ class Configuration(object):
         # training --------------------------------------------------------------
         self.model_name = '4-10'
 
-        self.train_split = 'train_black_white_497'
-        self.valid_split = 'valid_black_white_44'
+        self.train_split = 'train_black_white_497'#'train_color_98' #
+        self.valid_split = 'valid_black_white_44'#'valid_color_9' #
         self.pretrain = None
-        self.checkpoint = '00016000_model.pth'
+        self.checkpoint = '00018000_model.pth'
 
         # optim -----------------------------------------------------------------
         self.lr = 0.01
@@ -110,15 +110,15 @@ class Configuration(object):
         self.num_iters = 35000
         self.iter_smooth = 20  # calculate smoothed loss over each 20 iter
         self.iter_valid = 100
-        self.iter_save = list(range(0, self.num_iters, 2000)) + [self.num_iters]
+        self.iter_save = list(range(0, self.num_iters, 1000)) + [self.num_iters]
         self.lr_scheduler = StepLR([ (0, 0.01),  (8000, 0.001),  (20000, 0.0001)])
 
         # validation  -----------------------------------------------------------
-        self.valid_checkpoint = None
+        self.valid_checkpoint = '00018000_model.pth'
         # submit ----------------------------------------------------------------
         self.submit_checkpoint = None
-        self.submit_split = 'test_black_white_53'
-        self.submit_csv_name = 'submission-BW53-only.csv'
+        self.submit_split = None#'test_black_white_53'
+        self.submit_csv_name = None#'submission-BW53-only.csv'
 
     def __repr__(self):
         d = self.__dict__.copy()

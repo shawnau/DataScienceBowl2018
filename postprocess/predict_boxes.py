@@ -31,7 +31,7 @@ def run_predict():
         ('scale_1.8',        do_test_augment_scale,  undo_test_augment_scale,     { 'scale_x': 1.8, 'scale_y': 1.8  } ),
     ]
 
-    split = 'valid_test'#'test_black_white_53'
+    split = cfg.valid_split#'valid_black_white_44'#'test_black_white_53' # 
 
 
     #start experiments here! ###########################################################
@@ -96,17 +96,17 @@ def run_predict():
             rcnn_proposal, detection, mask, instance  = undo_test_augment(net, image, **params)
 
             ## save results ---------------------------------------
-            np.save(os.path.join(out_dir, 'predict', tag, 'rcnn_proposals', '%s.npy'%name),rcnn_proposal)
-            np.save(os.path.join(out_dir, 'predict', tag, 'masks',          '%s.npy'%name),mask)
+            #np.save(os.path.join(out_dir, 'predict', tag, 'rcnn_proposals', '%s.npy'%name),rcnn_proposal)
+            #np.save(os.path.join(out_dir, 'predict', tag, 'masks',          '%s.npy'%name),mask)
             np.save(os.path.join(out_dir, 'predict', tag, 'detections',     '%s.npy'%name),detection)
-            np.save(os.path.join(out_dir, 'predict', tag, 'instances',      '%s.npy'%name),instance)
+            #np.save(os.path.join(out_dir, 'predict', tag, 'instances',      '%s.npy'%name),instance)
 
             if 1:
                 threshold = cfg.rcnn_test_nms_pre_score_threshold
                 all2 = draw_predict_mask(threshold, image, mask, detection)
 
                 ## save
-                cv2.imwrite(os.path.join(out_dir, 'predict', tag, 'predicts', '%s.png'%name), all2)
+                #cv2.imwrite(os.path.join(out_dir, 'predict', tag, 'predicts', '%s.png'%name), all2)
 
                 if 1:
                     color_overlay   = multi_mask_to_color_overlay(mask)
@@ -121,13 +121,13 @@ def run_predict():
                     #image_show('overlays',all)
 
                     #psd
-                    os.makedirs(os.path.join(out_dir, 'predict', 'overlays'), exist_ok=True)
-                    cv2.imwrite(os.path.join(out_dir, 'predict', tag, 'overlays', '%s.png'%name),all)
+                    #os.makedirs(os.path.join(out_dir, 'predict', 'overlays'), exist_ok=True)
+                    #cv2.imwrite(os.path.join(out_dir, 'predict', tag, 'overlays', '%s.png'%name),all)
 
-                    os.makedirs(os.path.join(out_dir, 'predict', tag, 'overlays', name), exist_ok=True)
-                    cv2.imwrite(os.path.join(out_dir, 'predict', tag, 'overlays', name, "%s.png"%name),image)
-                    cv2.imwrite(os.path.join(out_dir, 'predict', tag, 'overlays', name, "%s.mask.png"%name),color_overlay)
-                    cv2.imwrite(os.path.join(out_dir, 'predict', tag, 'overlays', name, "%s.contour.png"%name),contour_overlay)
+                    #os.makedirs(os.path.join(out_dir, 'predict', tag, 'overlays', name), exist_ok=True)
+                    #cv2.imwrite(os.path.join(out_dir, 'predict', tag, 'overlays', name, "%s.png"%name),image)
+                    #cv2.imwrite(os.path.join(out_dir, 'predict', tag, 'overlays', name, "%s.mask.png"%name),color_overlay)
+                    #cv2.imwrite(os.path.join(out_dir, 'predict', tag, 'overlays', name, "%s.contour.png"%name),contour_overlay)
 
         #assert(test_num == len(test_loader.sampler))
         log.write('-------------\n')
