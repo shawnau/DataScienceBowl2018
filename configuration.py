@@ -18,7 +18,7 @@ class Configuration(object):
         self.data_dir = os.path.join(self.root_dir, 'data')
         self.split_dir = os.path.join(self.data_dir, 'splits')
         # result directory to store model info
-        self.result_dir = os.path.join(self.root_dir, 'results')
+        self.result_dir = os.path.join('/', 'mnt', 'results')
 
         # net
         # include background class
@@ -88,7 +88,7 @@ class Configuration(object):
 
         self.mask_test_nms_pre_score_threshold = 0.4
         self.mask_test_nms_overlap_threshold = 0.1
-        self.mask_test_mask_threshold  = 0.4
+        self.mask_test_mask_threshold  = 0.5
         self.mask_test_mask_min_area = 8
 
         # annotation
@@ -101,7 +101,7 @@ class Configuration(object):
         self.train_split = 'train_black_white_497'#'train_color_98' #
         self.valid_split = 'valid_black_white_44'#'valid_color_9' #
         self.pretrain = None
-        self.checkpoint = '00018000_model.pth'
+        self.checkpoint = '00021000_model.pth'
 
         # optim -----------------------------------------------------------------
         self.lr = 0.01
@@ -114,7 +114,7 @@ class Configuration(object):
         self.lr_scheduler = StepLR([ (0, 0.01),  (8000, 0.001),  (20000, 0.0001)])
 
         # validation  -----------------------------------------------------------
-        self.valid_checkpoint = '00018000_model.pth'
+        self.valid_checkpoint = '00021000_model.pth'
         # submit ----------------------------------------------------------------
         self.submit_checkpoint = None
         self.submit_split = None#'test_black_white_53'

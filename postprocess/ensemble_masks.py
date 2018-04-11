@@ -138,6 +138,7 @@ def ensemble_masks():
     #setup ---------------------------------------
     os.makedirs(out_dir +'/ensemble_data_overlays', exist_ok=True)
     os.makedirs(out_dir +'/ensemble_data', exist_ok=True)
+    os.makedirs(out_dir +'/ensemble_masks', exist_ok=True)
 
     split = cfg.valid_split#'test_black_white_53'
     ids = read_list_from_file(os.path.join(cfg.split_dir, split), comment='#')

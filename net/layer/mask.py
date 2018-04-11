@@ -1,7 +1,7 @@
 import copy
 import cv2
 import numpy as np
-import skimage
+from skimage import morphology
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -59,7 +59,7 @@ def make_empty_masks(cfg, mode, inputs):
 
 def instance_to_binary(instance, threshold, min_area):
     binary = instance > threshold
-    label  = skimage.morphology.label(binary)
+    label  = morphology.label(binary)
     num_labels = label.max()
     if num_labels>0:
         areas    = [(label==c+1).sum() for c in range(num_labels)]

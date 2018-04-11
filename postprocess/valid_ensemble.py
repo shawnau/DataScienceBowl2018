@@ -108,3 +108,6 @@ def run_evaluate():
     log.write('-------------\n')
     log.write('mask_average_precision = %0.5f\n' % mask_average_precisions.mean())
     log.write('\n')
+
+if __name__ == '__main__':
+    run_evaluate()
