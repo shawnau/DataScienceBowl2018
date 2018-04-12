@@ -60,7 +60,7 @@ def run_predict_mask_only():
         os.makedirs(os.path.join(out_dir, 'predict', tag, 'predicts'), exist_ok=True)
         os.makedirs(os.path.join(out_dir, 'predict', tag, 'rcnn_proposals'), exist_ok=True)
         os.makedirs(os.path.join(out_dir, 'predict', tag, 'detections'), exist_ok=True)
-        os.makedirs(os.path.join(out_dir, 'predict', tag, 'masks'), exist_ok=True)
+        os.makedirs(os.path.join(out_dir, 'predict', tag, 'multi_masks'), exist_ok=True)
         os.makedirs(os.path.join(out_dir, 'predict', tag, 'instances'), exist_ok=True)
 
 
@@ -84,12 +84,12 @@ def run_predict_mask_only():
             rcnn_proposal, detection, mask, instance  = undo_test_augment(net, image, **params)
 
             ##save results ---------------------------------------
-            #np.save(os.path.join(out_dir, 'predict', tag, 'masks',          '%s.npy'%name),mask)
+            np.save(os.path.join(out_dir, 'predict', tag, 'multi_masks',    '%s.npy'%name),mask)
             np.save(os.path.join(out_dir, 'predict', tag, 'detections',     '%s.npy'%name),detection)
             #np.save(os.path.join(out_dir, 'predict', tag, 'rcnn_proposals', '%s.npy'%name),rcnn_proposal)
             np.save(os.path.join(out_dir, 'predict', tag, 'instances',      '%s.npy'%name),instance)
 
-            if 1:
+            if 0:
                 threshold = cfg.rcnn_test_nms_pre_score_threshold  #0.8
                 #all1 = draw_predict_proposal(threshold, image, rcnn_proposal)
                 all2 = draw_predict_mask(threshold, image, mask, detection)

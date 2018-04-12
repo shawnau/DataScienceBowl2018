@@ -11,6 +11,8 @@ class SourceFolder:
     def get_image(self, img_id, flags=cv2.IMREAD_COLOR):
         img_folder = os.path.join(self.folder_name, img_id, 'images')
         img_files = glob(os.path.join(img_folder, '*.png'))
+        if len(img_files) == 0:
+            img_files = glob(os.path.join(img_folder, '*.tif'))
         assert len(img_files) == 1
         img_file = img_files[0]
 

@@ -313,11 +313,10 @@ def do_test_augment_scale(image, proposal=None, scale_x=1, scale_y=1):
 
 def undo_test_augment_scale(net, image, scale_x=1, scale_y=1):
 
-    def scale_mask(H,W, detection, mask_prob ):
-        mask_threshold=0.5
+    def scale_mask(H,W, detection, mask_prob):
 
-        mask = np.zeros((H,W),np.int32)
-        instance = []
+        multi_mask = np.zeros((H,W),np.int32)
+        instance_prob = []
 
         num_detection = len(detection)
         for n in range(num_detection):
@@ -333,15 +332,17 @@ def undo_test_augment_scale(net, image, scale_x=1, scale_y=1):
             crop  = mask_prob[k, label]
             crop  = cv2.resize(crop, (w,h), interpolation=cv2.INTER_LINEAR)
 
-            m = np.zeros((H,W),np.float32)
-            m[y0:y1+1,x0:x1+1] = crop
-            instance.append(m.reshape(1,H,W))
+            mask = np.zeros((H,W),np.float32)
+            mask[y0:y1+1,x0:x1+1] = crop
+            instance_prob.append(mask.reshape(1,H,W))
 
-            binary = instance_to_binary(m, threshold=0.5,min_area=5)
-            mask[np.where(binary)] = n+1
+            binary = instance_to_binary(mask, 
+                                        threshold=net.cfg.mask_test_mask_threshold,
+                                        min_area=net.cfg.mask_test_mask_min_area)
+            multi_mask[np.where(binary)] = n+1
 
-        instance = np.vstack(instance)
-        return mask, instance
+        instance_prob = np.vstack(instance_prob)
+        return multi_mask, instance_prob
 
     # ----
     rcnn_proposal = net.rcnn_proposals.cpu().numpy()

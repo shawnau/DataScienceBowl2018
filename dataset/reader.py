@@ -171,3 +171,20 @@ def instance_to_multi_mask(instance):
         multi_mask[instance[i] > 0] = i+1
 
     return multi_mask
+
+
+def multi_mask_to_instance(multi_mask):
+    H, W = multi_mask.shape[:2]
+    num_masks = len(np.unique(multi_mask))
+
+    instances = []
+    for i in range(num_masks):
+        instance = (multi_mask == (i+1))
+        if instance.sum() > 1:
+            instances.append(instance)
+    
+    if len(instances) > 0:
+        instances = np.array(instances, np.float32)
+    else:
+        instances = np.zeros((0, H, W), np.float32)
+    return instances

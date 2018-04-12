@@ -12,7 +12,8 @@ class Configuration(object):
         # source data downloaded from kaggle
         self.source_dir = '/root/xiaoxuan/kaggle/data/__download__'
         self.source_train_dir = os.path.join(self.source_dir, 'stage1_train')
-        self.source_test_dir = os.path.join(self.source_dir, 'stage1_test')
+        self.source_test_dir = os.path.join(self.source_dir, 'stage2_test')
+        self.source_extra_dir = os.path.join(self.source_dir, 'extra_data')
 
         # root directory to store data & result
         self.root_dir = '/root/xiaoxuan/kaggle'
@@ -57,53 +58,54 @@ class Configuration(object):
 
         self.rpn_train_scale_balance = False
 
-        self.rpn_train_nms_pre_score_threshold = 0.7
-        self.rpn_train_nms_overlap_threshold   = 0.8  # higher for more proposals for mask training
+        self.rpn_train_nms_pre_score_threshold = 0.50
+        self.rpn_train_nms_overlap_threshold   = 0.85  # higher for more proposals for mask training
         self.rpn_train_nms_min_size = 5
 
-        self.rpn_test_nms_pre_score_threshold = 0.8
-        self.rpn_test_nms_overlap_threshold   = 0.5
+        self.rpn_test_nms_pre_score_threshold = 0.60
+        self.rpn_test_nms_overlap_threshold   = 0.75
         self.rpn_test_nms_min_size = 5
 
         # rcnn ------------------------------------------------------------------
         self.rcnn_crop_size         = 14
-        self.rcnn_train_batch_size  = 64  # per image
+        self.rcnn_train_batch_size  = 32  # per image
         self.rcnn_train_fg_fraction = 0.5
         self.rcnn_train_fg_thresh_low  = 0.5
         self.rcnn_train_bg_thresh_high = 0.5
         self.rcnn_train_bg_thresh_low  = 0.0
 
         self.rcnn_train_nms_pre_score_threshold = 0.05
-        self.rcnn_train_nms_overlap_threshold   = 0.8  # high for more proposals for mask
+        self.rcnn_train_nms_overlap_threshold   = 0.85  # high for more proposals for mask
         self.rcnn_train_nms_min_size = 5
 
-        self.rcnn_test_nms_pre_score_threshold = 0.5
-        self.rcnn_test_nms_overlap_threshold   = 0.5
+        self.rcnn_test_nms_pre_score_threshold = 0.50
+        self.rcnn_test_nms_overlap_threshold   = 0.85
         self.rcnn_test_nms_min_size = 5
 
         # mask ------------------------------------------------------------------
         self.mask_crop_size            = 14  # input of mask head
-        self.mask_train_batch_size     = 64  # per image
+        self.mask_train_batch_size     = 32  # per image
         self.mask_size                 = 28  # out put of mask head
         self.mask_train_min_size       = 5
         self.mask_train_fg_thresh_low  = self.rpn_train_fg_thresh_low
 
-        self.mask_test_nms_pre_score_threshold = 0.4
-        self.mask_test_nms_overlap_threshold = 0.1
+        self.mask_test_nms_pre_score_threshold = 0.1
+        self.mask_test_nms_overlap_threshold = 0.85
         self.mask_test_mask_threshold  = 0.5
         self.mask_test_mask_min_area = 8
 
         # annotation
         self.annotation_train_split = 'train_all_664'
-        self.annotation_test_split = 'test_all_65'
+        self.annotation_test_split = 'test2_all_3019'
+        self.annotation_extra_split = 'extra_raw'
 
         # training --------------------------------------------------------------
-        self.model_name = '4-10'
+        self.model_name = '4-10'#'4-10-color-mixed'#
 
-        self.train_split = 'train_black_white_497'#'train_color_98' #
-        self.valid_split = 'valid_black_white_44'#'valid_color_9' #
+        self.train_split = 'train_color_mixed_338' #'train_black_white_497' #'train_color_98' #
+        self.valid_split = 'valid_black_white_44' #'valid_color_mixed_39'  #'valid_color_9' #
         self.pretrain = None
-        self.checkpoint = '00021000_model.pth'
+        self.checkpoint = None
 
         # optim -----------------------------------------------------------------
         self.lr = 0.01
@@ -116,24 +118,24 @@ class Configuration(object):
         self.lr_scheduler = StepLR([ (0, 0.01),  (8000, 0.001),  (20000, 0.0001)])
 
         # validation  -----------------------------------------------------------
-        self.valid_checkpoint = '00021000_model.pth'
+        self.valid_checkpoint = '00021000_model.pth' #also for ensemble
         # submit ----------------------------------------------------------------
-        self.submit_checkpoint = None
-        self.submit_split = None#'test_black_white_53'
-        self.submit_csv_name = None#'submission-BW53-only.csv'
+        self.submit_checkpoint = self.valid_checkpoint
+        self.submit_split = None #'test_black_white_53'
+        self.submit_csv_name = None #'submission-BW53-only.csv'
 
         # test time augments
         self.test_augments = [
             ('normal', do_test_augment_identity, undo_test_augment_identity, {}),
-            ('flip_transpose_1', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type': 1, }),
+            #('flip_transpose_1', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type': 1, }),
             ('flip_transpose_2', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type': 2, }),
-            ('flip_transpose_3', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type': 3, }),
+            #('flip_transpose_3', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type': 3, }),
             ('flip_transpose_4', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type': 4, }),
-            ('flip_transpose_5', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type': 5, }),
+            #('flip_transpose_5', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type': 5, }),
             ('flip_transpose_6', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type': 6, }),
-            ('flip_transpose_7', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type': 7, }),
-            ('scale_0.8', do_test_augment_scale, undo_test_augment_scale, {'scale_x': 0.8, 'scale_y': 0.8}),
-            ('scale_1.2', do_test_augment_scale, undo_test_augment_scale, {'scale_x': 1.2, 'scale_y': 1.2}),
+            #('flip_transpose_7', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type': 7, }),
+            #('scale_0.8', do_test_augment_scale, undo_test_augment_scale, {'scale_x': 0.8, 'scale_y': 0.8}),
+            #('scale_1.2', do_test_augment_scale, undo_test_augment_scale, {'scale_x': 1.2, 'scale_y': 1.2}),
             ('scale_0.5', do_test_augment_scale, undo_test_augment_scale, {'scale_x': 0.5, 'scale_y': 0.5}),
             ('scale_1.8', do_test_augment_scale, undo_test_augment_scale, {'scale_x': 1.8, 'scale_y': 1.8}),
         ]
