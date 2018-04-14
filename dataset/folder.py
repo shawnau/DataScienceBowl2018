@@ -76,6 +76,7 @@ class TrainFolder:
 
         self.submit_dir = os.path.join(self.folder_name, 'submit')
         self.submit_npy_dir = os.path.join(self.submit_dir, 'npys')
+        self.submit_instance_dir = os.path.join(self.submit_dir, 'post_instances')
         self.submit_overlay_dir = os.path.join(self.submit_dir, 'overlay')
         self.submit_psds_dir = os.path.join(self.submit_dir, 'psds')
 
@@ -86,6 +87,7 @@ class TrainFolder:
 
         os.makedirs(self.evaluate_dir, exist_ok=True)
         os.makedirs(self.evaluate_npy_dir, exist_ok=True)
+        os.makedirs(self.submit_instance_dir, exist_ok=True)
         os.makedirs(self.evaluate_overlay_dir, exist_ok=True)
 
         os.makedirs(self.submit_dir, exist_ok=True)

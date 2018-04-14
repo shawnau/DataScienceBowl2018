@@ -21,7 +21,7 @@ class Configuration(object):
         self.data_dir = os.path.join(self.root_dir, 'data')
         self.split_dir = os.path.join(self.data_dir, 'splits')
         # result directory to store model info
-        self.result_dir = os.path.join('/', 'mnt', 'results')
+        self.result_dir = os.path.join('/', 'root', 'super_large')
 
         # net
         # include background class
@@ -76,21 +76,21 @@ class Configuration(object):
 
         self.rcnn_train_nms_pre_score_threshold = 0.05
         self.rcnn_train_nms_overlap_threshold   = 0.85  # high for more proposals for mask
-        self.rcnn_train_nms_min_size = 5
+        self.rcnn_train_nms_min_size = 8
 
         self.rcnn_test_nms_pre_score_threshold = 0.50
         self.rcnn_test_nms_overlap_threshold   = 0.85
-        self.rcnn_test_nms_min_size = 5
+        self.rcnn_test_nms_min_size = 8
 
         # mask ------------------------------------------------------------------
         self.mask_crop_size            = 14  # input of mask head
         self.mask_train_batch_size     = 32  # per image
         self.mask_size                 = 28  # out put of mask head
-        self.mask_train_min_size       = 5
+        self.mask_train_min_size       = 8
         self.mask_train_fg_thresh_low  = self.rpn_train_fg_thresh_low
 
         self.mask_test_nms_pre_score_threshold = 0.1
-        self.mask_test_nms_overlap_threshold = 0.85
+        self.mask_test_nms_overlap_threshold = 0.2
         self.mask_test_mask_threshold  = 0.5
         self.mask_test_mask_min_area = 8
 
@@ -100,10 +100,10 @@ class Configuration(object):
         self.annotation_extra_split = 'extra_raw'
 
         # training --------------------------------------------------------------
-        self.model_name = '4-10'#'4-10-color-mixed'#
+        self.model_name = '4-10'#'4-10-color-mixed'
 
-        self.train_split = 'train_color_mixed_338' #'train_black_white_497' #'train_color_98' #
-        self.valid_split = 'valid_black_white_44' #'valid_color_mixed_39'  #'valid_color_9' #
+        self.train_split = 'train_color_mixed_338'
+        self.valid_split = 'test2_bw_to_ensemble_791'#'test2_color_219'
         self.pretrain = None
         self.checkpoint = None
 
@@ -118,11 +118,11 @@ class Configuration(object):
         self.lr_scheduler = StepLR([ (0, 0.01),  (8000, 0.001),  (20000, 0.0001)])
 
         # validation  -----------------------------------------------------------
-        self.valid_checkpoint = '00021000_model.pth' #also for ensemble
+        self.valid_checkpoint = '00021000_model.pth'#'00017000_model.pth'
         # submit ----------------------------------------------------------------
         self.submit_checkpoint = self.valid_checkpoint
-        self.submit_split = None #'test_black_white_53'
-        self.submit_csv_name = None #'submission-BW53-only.csv'
+        self.submit_split = None#'test2_color_219'
+        self.submit_csv_name = None#'submission-BW2799-only.csv'
 
         # test time augments
         self.test_augments = [
@@ -132,12 +132,12 @@ class Configuration(object):
             #('flip_transpose_3', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type': 3, }),
             ('flip_transpose_4', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type': 4, }),
             #('flip_transpose_5', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type': 5, }),
-            ('flip_transpose_6', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type': 6, }),
+            #('flip_transpose_6', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type': 6, }),
             #('flip_transpose_7', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type': 7, }),
             #('scale_0.8', do_test_augment_scale, undo_test_augment_scale, {'scale_x': 0.8, 'scale_y': 0.8}),
             #('scale_1.2', do_test_augment_scale, undo_test_augment_scale, {'scale_x': 1.2, 'scale_y': 1.2}),
-            ('scale_0.5', do_test_augment_scale, undo_test_augment_scale, {'scale_x': 0.5, 'scale_y': 0.5}),
-            ('scale_1.8', do_test_augment_scale, undo_test_augment_scale, {'scale_x': 1.8, 'scale_y': 1.8}),
+            ('scale_0.5', do_test_augment_scale, undo_test_augment_scale, {'scale_x': 0.8, 'scale_y': 0.8}),
+            ('scale_1.8', do_test_augment_scale, undo_test_augment_scale, {'scale_x': 1.2, 'scale_y': 1.2}),
         ]
         self.test_augment_names = [t[0] for t in self.test_augments]
 

@@ -1,6 +1,7 @@
 import os
 from timeit import default_timer as timer
 import numpy as np
+from numba import jit
 import cv2
 from torch.utils.data.dataset import Dataset
 from utility.file import read_list_from_file
@@ -149,7 +150,7 @@ def multi_mask_to_annotation(multi_mask):
     return box, label, instance
 
 
-def instance_to_multi_mask(instance):
+def instance_to_multi_mask(instances):
     """
     :param
     instance: list of one vs all masks. e.g.
@@ -163,16 +164,23 @@ def instance_to_multi_mask(instance):
          [2, 0, 3, 3]]
         for 3 masks in a 4*4 input
     """
-    H,W = instance.shape[1:3]
+    H,W = instances.shape[1:3]
     multi_mask = np.zeros((H,W),np.int32)
 
-    num_masks = len(instance)
+    # sort masks   
+    instance_sizes = []
+    num_masks = len(instances)
     for i in range(num_masks):
-        multi_mask[instance[i] > 0] = i+1
+        instance = instances[i]
+        instance_sizes.append((i, instance.sum()))
+    sorted_sizes = sorted(instance_sizes, key=lambda tup: tup[1], reverse=True)
+    
+    for j, _ in sorted_sizes:
+        multi_mask[instances[j] > 0] = i+1
 
     return multi_mask
 
-
+@jit
 def multi_mask_to_instance(multi_mask):
     H, W = multi_mask.shape[:2]
     num_masks = len(np.unique(multi_mask))

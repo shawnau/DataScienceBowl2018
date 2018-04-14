@@ -1,5 +1,7 @@
+import numpy as np
 import torch
 import torch.nn as nn
+from torch.autograd import Variable
 from torch.nn.parallel.data_parallel import data_parallel
 
 from net.layer.SE_ResNeXt_FPN import SEResNeXtFPN
@@ -55,6 +57,7 @@ class MaskRcnnNet(nn.Module):
             self.rpn_proposals = self.sampled_rcnn_proposals  # use sampled proposals for training
 
         # rcnn proposals ------------------------------------------------
+        self.rcnn_proposals = self.rpn_proposals # for eval only when no porposals
         if len(self.rpn_proposals) > 0:
             rcnn_crops = self.rcnn_crop(features, self.rpn_proposals)
             self.rcnn_logits, self.rcnn_deltas = self.rcnn_head(rcnn_crops)
@@ -78,6 +81,7 @@ class MaskRcnnNet(nn.Module):
         # segmentation  -------------------------------------------
         self.detections = self.rcnn_proposals
         self.masks = make_empty_masks(self.cfg, self.mode, images)
+        self.mask_instances = []
 
         if len(self.rcnn_proposals) > 0:
             mask_crops = self.mask_crop(features, self.detections)

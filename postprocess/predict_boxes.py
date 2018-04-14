@@ -67,6 +67,9 @@ def run_predict():
         log.write('** start evaluation here @%s! **\n'%tag)
         for i in range(len(ids)):
             folder, name = ids[i].split('/')[-2:]
+            if os.path.isfile(os.path.join(out_dir, 'predict', tag, 'detections',     '%s.npy'%name)):
+                print('skip %03d %s'%(i,name))
+                continue
             print('%03d %s'%(i,name))
             image = cv2.imread(os.path.join(cfg.data_dir, folder, 'images', '%s.png' % name), cv2.IMREAD_COLOR)
             ## augment --------------------------------------
@@ -86,7 +89,7 @@ def run_predict():
             np.save(os.path.join(out_dir, 'predict', tag, 'detections',     '%s.npy'%name),detection)
             #np.save(os.path.join(out_dir, 'predict', tag, 'instances',      '%s.npy'%name),instance)
 
-            if 1:
+            if 0:
                 threshold = cfg.rcnn_test_nms_pre_score_threshold
                 all2 = draw_predict_mask(threshold, image, mask, detection)
 

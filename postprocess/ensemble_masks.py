@@ -1,4 +1,5 @@
 import sys, operator
+
 sys.path.append('..')
 from scipy.ndimage.morphology import binary_fill_holes
 from configuration import Configuration
@@ -13,18 +14,30 @@ class MaskCluster:
     def __init__(self):
         super(MaskCluster, self).__init__()
         self.members = []
-        self.union = None
-        self.union_size = None
+        self.core = None
+        self.core_size = None
 
-    def add(self, instance):
+    def add(self, instance, type='intersect'):
+        """
+        :param instance: numpy array of one instance
+        :param type:
+            union: core is union
+            intersect: core is intersection
+        :return:
+        """
         if self.members == []:
             self.members.append(instance)
-            self.union = instance
-            self.union_size = instance.sum()
+            self.core = instance
+            self.core_size = instance.sum()
         else:
             self.members.append(instance)
-            self.union = np.logical_or(self.union, instance)
-            self.union_size = self.union.sum()
+            if type == 'union':
+                self.core = np.logical_or(self.core, instance)
+            elif type == 'intersect':
+                self.core = np.logical_and(self.core, instance)
+            else:
+                raise NotImplementedError
+            self.core_size = self.core.sum()
 
 
 def clustering_masks(instances, iou_threshold=0.3, overlap_threshold=0.3):
@@ -41,15 +54,14 @@ def clustering_masks(instances, iou_threshold=0.3, overlap_threshold=0.3):
         instance_sizes.append((i, instance.sum()))
     sorted_sizes = sorted(instance_sizes, key=lambda tup: tup[1], reverse=True)
 
-
     for i, instance_size in sorted_sizes:
         instance = instances[i]
 
         added_to_group = False
         for c in clusters:
-            cluster_size = c.union_size
-            inter = np.logical_and(c.union, instance).sum()
-            union = np.logical_or(c.union, instance).sum()
+            cluster_size = c.core_size
+            inter = np.logical_and(c.core, instance).sum()
+            union = np.logical_or(c.core, instance).sum()
             iou = inter / (union + 1e-12)
 
             if (inter / cluster_size > overlap_threshold) or \
@@ -72,7 +84,7 @@ def fill_holes(instances):
     return instances
 
 
-def filter_small(proposals, instances, min_threshold=0.0001, area_threshold=10):
+def filter_small(proposals, instances, min_threshold=0.0001, area_threshold=50):
     """
     :param instances: numpy array of 0/1 instance in one image
     :param area_threshold: do filter if max mask / min mask > this
@@ -112,32 +124,31 @@ def ensemble_masks():
     f_eval = TrainFolder(os.path.join(cfg.result_dir, cfg.model_name))
     out_dir = os.path.join(f_eval.folder_name, 'predict', 'ensemble_all')
 
-    #ensemble_dirs = [os.path.join(f_eval.folder_name, 'predict', e) for e in ensemble_dirs]
-    ensemble_dirs = [os.path.join(f_eval.folder_name, 'predict', 'mask_ensemble_'+e) for e in cfg.test_augment_names]
+    # ensemble_dirs = [os.path.join(f_eval.folder_name, 'predict', e) for e in ensemble_dirs]
+    ensemble_dirs = [os.path.join(f_eval.folder_name, 'predict', 'mask_ensemble_' + e) for e in cfg.test_augment_names]
 
-    #setup ---------------------------------------
-    os.makedirs(out_dir +'/ensemble_data_overlays', exist_ok=True)
-    os.makedirs(out_dir +'/ensemble_data', exist_ok=True)
-    os.makedirs(out_dir +'/ensemble_masks', exist_ok=True)
+    # setup ---------------------------------------
+    os.makedirs(out_dir + '/ensemble_data_overlays', exist_ok=True)
+    os.makedirs(out_dir + '/ensemble_data', exist_ok=True)
+    os.makedirs(out_dir + '/ensemble_masks', exist_ok=True)
 
-    split = cfg.valid_split#'test_black_white_53'
+    split = cfg.valid_split  # 'test_black_white_53'
     ids = read_list_from_file(os.path.join(cfg.split_dir, split), comment='#')
 
     for i in range(len(ids)):
         folder, name = ids[i].split('/')[-2:]
-        print('%05d %s'%(i,name))
+        print('%05d %s' % (i, name))
 
         image = cv2.imread(os.path.join(cfg.data_dir, folder, 'images', '%s.png' % name), cv2.IMREAD_COLOR)
         height, width = image.shape[:2]
 
-        instances=[]
-        proposals=[]
-        for t,dir in enumerate(ensemble_dirs):
-            instance_prob = np.load(os.path.join(dir, 'instances',   '%s.npy'%name))
-            multi_mask    = np.load(os.path.join(dir, 'multi_masks', '%s.npy'%name))
-            instance      = (instance_prob > cfg.mask_test_mask_threshold).astype(np.float32)
-            proposal      = np.load(os.path.join(dir, 'detections',  '%s.npy'%name))
-            assert(len(proposal)==len(instance))
+        instances = []
+        proposals = []
+        for t, dir in enumerate(ensemble_dirs):
+            instance_prob = np.load(os.path.join(dir, 'instances', '%s.npy' % name))
+            instance = (instance_prob > cfg.mask_test_mask_threshold).astype(np.float32)
+            proposal = np.load(os.path.join(dir, 'detections', '%s.npy' % name))
+            assert (len(proposal) == len(instance))
 
             instances.append(instance)
             proposals.append(proposal)
@@ -152,7 +163,7 @@ def ensemble_masks():
         rois = all_proposals[:, 1:6]
         keep = cython_nms(rois, 0.5)
         all_instances = all_instances[keep]
-        
+
         # fill holes
         all_instances = fill_holes(all_instances)
 
@@ -183,22 +194,31 @@ def ensemble_masks():
         ensemble_instances = np.array(ensemble_instances)
         ensemble_instance_edges = np.array(ensemble_instance_edges)
 
-        sum_instance      = ensemble_instances.sum(axis=0)
+        sum_instance = ensemble_instances.sum(axis=0)
         sum_instance_edge = ensemble_instance_edges.sum(axis=0)
-        gray0 = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
+        
+        
         gray1 = (sum_instance/sum_instance.max()*255).astype(np.uint8)
+        rgb1 = cv2.cvtColor(gray1, cv2.COLOR_GRAY2RGB)
         gray2 = (sum_instance_edge/sum_instance_edge.max()*255).astype(np.uint8)
-        all = np.hstack([gray0,gray1,gray2])
+        rgb2 = cv2.cvtColor(gray2, cv2.COLOR_GRAY2RGB)
+        
+        w, h, _ = rgb2.shape
+        m = rgb2 > 0
+        c = np.tile([0,255,0],[w,h,1])
+        i = image*(1-m) + c*m
+        
+        all = np.hstack([i, rgb1])
 
-        #save as train data
-        data  = cv2.merge((gray0, gray1, gray2))
+        # save as train data
+        #data = cv2.merge((image, gray1, gray2))
         multi_mask = instance_to_multi_mask(ensemble_instances)
-        cv2.imwrite(os.path.join(out_dir, 'ensemble_data_overlays', '%s.png'%name), all)
-        cv2.imwrite(os.path.join(out_dir, 'ensemble_data',          '%s.png'%name), data)
-        np.save(    os.path.join(out_dir, 'ensemble_masks',         '%s.npy'%name), multi_mask)
+        cv2.imwrite(os.path.join(out_dir, 'ensemble_data_overlays', '%s.png' % name), all)
+        #cv2.imwrite(os.path.join(out_dir, 'ensemble_data', '%s.png' % name), data)
+        np.save(os.path.join(out_dir, 'ensemble_masks', '%s.npy' % name), multi_mask)
 
 
 if __name__ == '__main__':
-    print( '%s: calling main function ... ' % os.path.basename(__file__))
+    print('%s: calling main function ... ' % os.path.basename(__file__))
     ensemble_masks()
     print('\nsucess!')
