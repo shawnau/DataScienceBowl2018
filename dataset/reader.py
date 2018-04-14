@@ -175,8 +175,8 @@ def instance_to_multi_mask(instances):
         instance_sizes.append((i, instance.sum()))
     sorted_sizes = sorted(instance_sizes, key=lambda tup: tup[1], reverse=True)
     
-    for j, _ in sorted_sizes:
-        multi_mask[instances[j] > 0] = i+1
+    for j, item in enumerate(sorted_sizes):
+        multi_mask[instances[item[0]] > 0] = j+1
 
     return multi_mask
 
