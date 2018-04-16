@@ -100,10 +100,10 @@ class Configuration(object):
         self.annotation_extra_split = 'extra_raw'
 
         # training --------------------------------------------------------------
-        self.model_name = '4-10'#'4-10-color-mixed'
+        self.model_name = 'final-bw2799'#'4-10-color-mixed'
 
         self.train_split = 'train_color_mixed_338'
-        self.valid_split = 'test2_bw_to_ensemble_791'#'test2_color_219'
+        self.valid_split = 'muscle_234'#'test2_bw_to_ensemble_791'# also ensemble split!
         self.pretrain = None
         self.checkpoint = None
 
@@ -118,26 +118,28 @@ class Configuration(object):
         self.lr_scheduler = StepLR([ (0, 0.01),  (8000, 0.001),  (20000, 0.0001)])
 
         # validation  -----------------------------------------------------------
-        self.valid_checkpoint = '00021000_model.pth'#'00017000_model.pth'
+        self.valid_checkpoint = '00021000_model.pth'#'00017000_model.pth'#
         # submit ----------------------------------------------------------------
         self.submit_checkpoint = self.valid_checkpoint
-        self.submit_split = None#'test2_color_219'
+        self.submit_split = 'muscle_234'#'test2_color_219'
         self.submit_csv_name = None#'submission-BW2799-only.csv'
 
         # test time augments
         self.test_augments = [
             ('normal', do_test_augment_identity, undo_test_augment_identity, {}),
             #('flip_transpose_1', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type': 1, }),
-            ('flip_transpose_2', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type': 2, }),
+            #('flip_transpose_2', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type': 2, }),
             #('flip_transpose_3', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type': 3, }),
-            ('flip_transpose_4', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type': 4, }),
+            #('flip_transpose_4', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type': 4, }),
             #('flip_transpose_5', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type': 5, }),
             #('flip_transpose_6', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type': 6, }),
             #('flip_transpose_7', do_test_augment_flip_transpose, undo_test_augment_flip_transpose, {'type': 7, }),
-            #('scale_0.8', do_test_augment_scale, undo_test_augment_scale, {'scale_x': 0.8, 'scale_y': 0.8}),
+            #('scale_0.5', do_test_augment_scale, undo_test_augment_scale, {'scale_x': 0.5, 'scale_y': 0.5}),
+            ('scale_0.6', do_test_augment_scale, undo_test_augment_scale, {'scale_x': 0.6, 'scale_y': 0.6}),
+            ('scale_0.8', do_test_augment_scale, undo_test_augment_scale, {'scale_x': 0.8, 'scale_y': 0.8}),
             #('scale_1.2', do_test_augment_scale, undo_test_augment_scale, {'scale_x': 1.2, 'scale_y': 1.2}),
-            ('scale_0.5', do_test_augment_scale, undo_test_augment_scale, {'scale_x': 0.8, 'scale_y': 0.8}),
-            ('scale_1.8', do_test_augment_scale, undo_test_augment_scale, {'scale_x': 1.2, 'scale_y': 1.2}),
+            #('scale_1.6', do_test_augment_scale, undo_test_augment_scale, {'scale_x': 1.6, 'scale_y': 1.6}),
+            #('scale_1.8', do_test_augment_scale, undo_test_augment_scale, {'scale_x': 1.8, 'scale_y': 1.8}),
         ]
         self.test_augment_names = [t[0] for t in self.test_augments]
 

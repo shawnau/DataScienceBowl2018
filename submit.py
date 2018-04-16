@@ -176,10 +176,9 @@ def run_submit():
     log.write('initial_checkpoint  = %s\n' % (initial_checkpoint))
     log.write('test_num  = %d\n' % (test_num))
     log.write('\n')
-
-
+    
 @jit
-def filter_small(instances, min_threshold=0.0001, area_threshold=10):
+def filter_small_debug(instances, threshold=20):
     """
     :param instances: numpy array of 0/1 instance in one image
     :param area_threshold: do filter if max mask / min mask > this
@@ -189,21 +188,61 @@ def filter_small(instances, min_threshold=0.0001, area_threshold=10):
     if len(instances) == 0:
         return np.array([], np.float32)
     H, W = instances[0].shape[:2]
-    min_size = (H * W) * min_threshold
 
     keep_instances = []
     max_size = 0
+    min_size = H*W
 
     for i in range(instances.shape[0]):
         size = instances[i].sum()
         if size > max_size:
             max_size = size
+        elif size < min_size:
+            min_size = size
 
+    for i in range(instances.shape[0]):
+        size = instances[i].sum()
+        if size / min_size > threshold:
+            keep_instances.append(instances[i])
+
+    keep_instances = np.array(keep_instances)
+
+    return keep_instances
+    
+    
+@jit
+def filter_small(instances, area_threshold=36):
+    """
+    :param instances: numpy array of 0/1 instance in one image
+    :param area_threshold: do filter if max mask / min mask > this
+    :param min_threshold: min area ratio
+    :return: filtered instances
+    """
+    H, W = instances[0].shape[:2]
+
+    keep_instances = []
+    max_size = 0
+    min_size = H*W
+
+    for i in range(instances.shape[0]):
+        size = instances[i].sum()
+        if size > max_size:
+            max_size = size
+        elif size < min_size:
+            min_size = size
+
+    size_threshold = max_size / area_threshold
+    
     if (max_size / min_size) > area_threshold:
         for i in range(instances.shape[0]):
             size = instances[i].sum()
-            if size / (H * W) > min_threshold:
+            
+            if size > size_threshold:
+                #print('%d: %d'%(i, size), ' > ', size_threshold, 'append')
                 keep_instances.append(instances[i])
+            else:
+                pass
+                #print('%d: %d'%(i, size), ' < ', size_threshold, 'exclude')
     else:
         keep_instances = instances
 
@@ -274,6 +313,7 @@ def process_one_image(npy_file):
 
     # post process here
     instances = postprocess(instances)
+    multi_mask = instance_to_multi_mask(instances)
 
     # debug ------------------------------------
     image_file = os.path.join(f_data.image_folder, '%s.png' % name)
@@ -283,17 +323,19 @@ def process_one_image(npy_file):
     contour_overlay = multi_mask_to_contour_overlay(multi_mask, image, [0, 255, 0])
     all_contour = np.hstack((image, contour_overlay, color1_overlay)).astype(np.uint8)
 
-    cv2.imwrite(os.path.join(f_submit.submit_overlay_dir, '%s.png' % id), all_contour)
-    np.save(os.path.join(f_submit.submit_instance_dir, '%s.npy' % name), instances)
+    cv2.imwrite(os.path.join(f_submit.submit_overlay_dir, '%s.png' % name), all_contour)
+    np.save(os.path.join(f_submit.submit_masks_dir, '%s.npy' % name), multi_mask)
     print(name[:5], instances.shape[0])
 
-@jit
+
 def run_npy_postprocess():
     """
     post process & create csv file
     """
     # load data from image directory
-    npy_files = glob.glob(f_submit.submit_npy_dir + '/*.npy')
+    rows = read_list_from_file(os.path.join(cfg.split_dir, cfg.submit_split), comment='#')
+    ids = [row.split('/')[-1] for row in rows]
+    npy_files = [os.path.join(f_submit.submit_npy_dir, '%s.npy'%img_id) for img_id in ids]
     pool = Pool()
     pool.map(process_one_image, npy_files)
 
@@ -347,8 +389,8 @@ def check_postprocess():
 if __name__ == '__main__':
     print('%s: calling main function ... ' % os.path.basename(__file__))
 
-    run_submit()
-    # run_npy_postprocess()
+    #run_submit()
+    run_npy_postprocess()
     # check_postprocess()
     print('\nsucess!')
 
