@@ -31,21 +31,21 @@ Requirements:
 folder labeded `<>` is generated automatically, other folders need manually set
 ```txt
 data
-    splits 存放训练集/测试集分割
+    splits # image names for train/test split
         split1
         ...
     <stage1_train>
         <images>
             id.png
-        <multi_masks> 存放了mask, 包括图片和npy
+        <multi_masks> # masks as npy files
             id.png
             id.npy
-        <overlays>  存放了mask和原图拼接的结果, 仅供观察
+        <overlays>  for check
             id.png
     <stage1_test>
         <images>
             id.png
-    source 存放下载的数据集
+    source # downloaded datasets
         stage1_train
         stage1_test
 ```
