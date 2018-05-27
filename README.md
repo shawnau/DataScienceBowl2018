@@ -1,6 +1,7 @@
 # Kaggle 2018 Data Science Bowl
 
-38th Solution of [Kaggle 2018 Data Science Bowl](https://www.kaggle.com/c/data-science-bowl-2018). PB 0.565
+38th Solution of [Kaggle 2018 Data Science Bowl](https://www.kaggle.com/c/data-science-bowl-2018). LB 0.565  
+
 Our team was removed from LB due to [submission issues](https://www.kaggle.com/c/data-science-bowl-2018/discussion/55062#latest-318477).
 
 1. We use pytorch mask-rcnn as our base model. The code is mainly from [Heng CherKeng](https://www.kaggle.com/c/data-science-bowl-2018/discussion/49692#latest-315307)
