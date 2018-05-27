@@ -10,6 +10,10 @@ Our team was removed from LB due to [submission issues](https://www.kaggle.com/c
 
 
 ## Build
+Requirements:
+1. pytorch 0.4
+2. python opencv 3
+3. Anaconda 3
 
 ```bash
 ./build_layers.sh
