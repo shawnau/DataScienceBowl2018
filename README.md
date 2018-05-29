@@ -7,6 +7,7 @@ Our team was removed from LB due to [submission issues](https://www.kaggle.com/c
 1. We use pytorch mask-rcnn as our base model. The code is mainly from [Heng CherKeng](https://www.kaggle.com/c/data-science-bowl-2018/discussion/49692#latest-315307)
 2. We changed anchor boxes to fit long/thin nuclei
 3. We use special cluster based filter to get rid of small false negative samples
+4. Stacking TTA proposals and masks for better recall
 
 
 ## Build
