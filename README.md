@@ -9,6 +9,7 @@ Our team was removed from LB due to [submission issues](https://www.kaggle.com/c
 3. We use special cluster based filter to get rid of small false negative samples
 4. Stacking TTA proposals and masks for better recall
 
+> This repo is kinda a mess. Only postprocess folder may help. If you need some insights from mask rcnn, please refer to the repo of [mask_rcnn_pytorch](https://github.com/shawnau/mask_rcnn_pytorch)
 
 ## Build
 Requirements:
